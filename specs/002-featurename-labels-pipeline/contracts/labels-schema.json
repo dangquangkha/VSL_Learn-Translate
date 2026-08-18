@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "VSLLabelSchema",
+  "type": "object",
+  "required": ["version", "total_classes", "labels"],
+  "properties": {
+    "version": { "type": "string" },
+    "total_classes": { "type": "integer", "const": 51 },
+    "labels": {
+      "type": "array",
+      "minItems": 51,
+      "maxItems": 51,
+      "items": {
+        "type": "object",
+        "required": ["id", "code", "display_name_vi", "dictionary_source"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 0, "maximum": 50 },
+          "code": { "type": "string" },
+          "display_name_vi": { "type": "string" },
+          "dictionary_source": { "type": "string" }
+        }
+      }
+    }
+  }
+}

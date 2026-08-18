@@ -1,0 +1,119 @@
+<!--
+Sync Impact Report:
+- Version change: 1.0.0 -> 1.1.0 (Added Executable Specification & EARS Notation Standards)
+- Added Core Principles:
+  7. VII. Executable Specification & Zero Ambiguity (EARS Notation)
+- Added Section: Executable Specification Standards (8 Components & EARS Notation)
+- Added Section: EARS Notation Keywords & Traceability Tags
+- Governance: Minor version bump due to expanded specification criteria & EARS tag traceability requirements.
+-->
+
+# VSL Learn & Translate Constitution
+
+## Core Principles
+
+### I. Client-Side Inference Zero Backend Predict (NON-NEGOTIABLE)
+All Machine Learning inference and sign recognition (ONNX Runtime Web + MediaPipe Tasks Vision) MUST run 100% locally within the user's browser client.
+- The Backend (Spring Boot 3 / Java 21) MUST NOT expose any `/predict` endpoint or perform real-time frame/landmark processing.
+- The Translate and Practice modes MUST remain fully operational offline after the initial asset payload (WASM, model weights, labels) is loaded.
+- Reason: Guarantees user privacy, eliminates server GPU overhead, achieves sub-50ms continuous translation latency, and ensures demo resilience.
+
+### II. Single Source of Truth for Class Labels
+The file `shared/labels.json` is the sole, authoritative source of truth for all 51 supported class labels (50 VSL signs + 1 `idle` class).
+- Front-end (`labels.ts`) and AI Pipeline (`labels.py`) code MUST be auto-generated from `shared/labels.json`.
+- Every exported `.onnx` model file MUST include an embedded hash of `shared/labels.json`. The frontend MUST verify this hash before model initialization and refuse to load mismatched models.
+- Reason: Prevents silent label index mismatches and catastrophic classification shifts.
+
+### III. Strict Training/Serving Skew Prevention
+All feature extraction, landmark normalization, spatial transformations, padding, and velocity calculations MUST be compiled directly into the PyTorch export as native ONNX graph operators (`forward()`).
+- JavaScript/Web Worker logic MUST ONLY collect raw landmark coordinates from MediaPipe and pass them straight into the ONNX session.
+- No ad-hoc pre-processing or mathematical normalization logic is permitted in client-side JavaScript.
+- Reason: Guarantees zero training/serving feature skew by design, ensuring notebook validation accuracy matches real-world browser runtime.
+
+### IV. Privacy-First & Zero-Knowledge Video Stream
+Webcam video streams and raw landmark data captured in Learn and Translate modes MUST NEVER leave the user's local machine.
+- Direct video uploading is ONLY permitted in the explicit Data Collection Recorder workflow (`FR-C`).
+- Data upload MUST proceed directly from the browser client to Cloudflare R2 via presigned URLs. Video files MUST NEVER transit through or proxy via the backend application server.
+- Informed consent MUST be captured through granular, independent opt-in toggles prior to any data collection.
+- Reason: Protects participant privacy, reduces server bandwidth consumption, and complies with ethical data management policies (`DR-E01`–`DR-E05`).
+
+### V. Citation-Backed Learning Content & Provenance
+The application MUST NOT present, teach, or evaluate any VSL sign or communicative phrase without an authoritative, verified dictionary source.
+- Every entry in the vocabulary database MUST contain a non-null `dictionary_source` referencing official corpora (e.g., QIPEDC) or verified native VSL fluent speakers.
+- Phrase combinations (FR-B08) MUST NOT be artificially constructed by combining isolated signs. Only naturally occurring VSL phrases confirmed by fluent speakers may be included.
+- Reason: Teaching incorrect or synthetic signs harms deaf community communication and undermines educational integrity.
+
+### VI. Subject-Independent Evaluation & Unbiased Split
+Model evaluation MUST strictly enforce subject-independent (leave-subjects-out) dataset splits.
+- Data from team members MUST BE confined strictly to the Training set (`Train`).
+- Validation (`Val`) and Test sets (`Test A` and `Test B`) MUST ONLY contain samples from external volunteers and native fluent VSL signers.
+- Model performance MUST report individual per-subject accuracy alongside macro averages to expose variance and potential demographic biases.
+- Reason: Prevents inflated accuracy metrics caused by identity leakage and ensures robust generalization to unobserved users.
+
+### VII. Executable Specification & Zero Ambiguity (EARS Notation)
+All feature specifications (`/speckit-specify`, `/speckit-plan`) MUST be written as **Executable Specifications** to eliminate AI hallucination and guessing.
+- Specifications MUST treat Spec as the interface between human intent and AI execution, adhering strictly to EARS Notation (Easy Approach to Requirements Syntax).
+- If an AI agent has to guess any requirement, technical constraint, or error handling path, the spec is deemed incomplete and MUST be rewritten before generating code.
+- Code generated by AI MUST include `# EARS[...]` or `// EARS[...]` traceability tags linking back to exact spec requirements.
+
+## Executable Specification Standards (8 Components)
+
+Every feature specification in this repository MUST encompass the following 8 core components:
+1. **Context & Goal**: Clear business context, technical context, and success metrics (Why).
+2. **Actors & Roles**: Explicit matrix of users, automated systems, and permissions (Who).
+3. **Functional Requirements**: Written strictly using 5 EARS patterns (What).
+4. **Non-functional Requirements**: Measurable metrics only (e.g., P95 latency < 50ms, int8 size < 5MB).
+5. **Data Model / Schema**: Explicit DTO, database entity structures, and constraints.
+6. **Error Handling & Failure Modes**: Comprehensive listing of every failure path (`Unwanted` pattern).
+7. **Acceptance Criteria**: Given-When-Then testable checklist mapping 1:1 to test cases.
+8. **Out of Scope**: Explicit boundary boundaries defining what the feature SHALL NOT do in the current iteration.
+
+## EARS Notation Keywords & Traceability Tags
+
+Requirements MUST utilize the 5 EARS Patterns with explicit obligation keywords:
+- **Ubiquitous (Always)**: `THE <system> SHALL <action>.`
+- **Event-driven (Trigger)**: `WHEN <event>, THE <system> SHALL <action>.`
+- **State-driven (Duration)**: `WHILE <state>, THE <system> SHALL <action>.`
+- **Optional Feature (Configurable)**: `WHERE <feature/condition> IS ENABLED, THE <system> SHALL <action>.`
+- **Unwanted (Error/Edge Case - Mandatory $\ge 30\%$ of total requirements)**: `WHERE <error/condition>, THE <system> SHALL <response>.`
+
+### Obligation Levels:
+- **`SHALL`**: Mandatory baseline requirement (100% implementation required).
+- **`SHALL NOT`**: Strict prohibition (security/architectural boundaries).
+- **`SHOULD`**: Non-blocking recommended practice.
+- **`MAY`**: Explicitly optional enhancement.
+
+## Technical Architecture & Infrastructure Constraints
+
+### 1. Zero-Cost Infrastructure Envelope
+- **Frontend**: Deployed to Cloudflare Pages as a static SPA.
+- **Backend**: Hosted on Azure for Students (or persistent non-sleeping instance); MUST NOT use short-timeout sleeping serverless tiers that introduce cold starts.
+- **Object Storage**: Cloudflare R2 for ONNX models, reference videos, and collected datasets.
+- **Database**: PostgreSQL managed alongside the Spring Boot backend.
+
+### 2. Browser & Device Compatibility Matrix
+- **Learn & Translate Modes**: Desktop Google Chrome and Microsoft Edge (WebAssembly + WebGL acceleration enabled).
+- **Data Collection Recorder**: Desktop Chrome/Edge + Chrome on Android (with mandatory posture/camera stability checks).
+- **iOS & Unsupported Browsers**: MUST display immediate, explicit incompatibility notices upon landing; graceful fallback without silent failures.
+
+## Quality Gates & Testing Standards
+
+### 1. Golden Integration Contract Test (T-02)
+- CI/CD pipelines MUST execute end-to-end golden tests running 20 reference tensor samples through PyTorch and `onnxruntime-web` in a headless browser.
+- Maximum allowable logit discrepancy between PyTorch and ONNX Runtime Web MUST be `< 1e-3`. Any larger deviation is a hard release blocker.
+
+### 2. Acceptance Criteria Gates
+- Top-1 Accuracy on Test Set A: $\ge 85\%$.
+- Model Inference Latency: $\le 50\text{ms}$ per evaluation window on mid-range client hardware.
+- ONNX Model File Size: $\le 5\text{MB}$ post-quantization (int8).
+
+## Governance
+
+1. **Supremacy**: This Constitution defines the non-negotiable architectural and engineering boundaries of the VSL Learn & Translate project. All Specs, Plans, Tasks, and PRs MUST comply with these principles.
+2. **Amendment Procedure**: Proposed changes to core principles require documented rationale, impact analysis, and approval by the project engineering team.
+3. **Versioning Policy**:
+   - **MAJOR**: Incompatible principle removals or architectural shifts (e.g., introducing server-side inference).
+   - **MINOR**: Addition of new core principles, governance policies, or infrastructure constraints.
+   - **PATCH**: Clarifications, formatting fixes, or wording refinements.
+
+**Version**: 1.1.0 | **Ratified**: 2026-08-17 | **Last Amended**: 2026-08-18
