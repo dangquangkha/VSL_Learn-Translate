@@ -1,0 +1,6 @@
+# File nhi phan — TUYET DOI khong de Git dong vao line ending.
+# Git thuong tu nhan ra binary, nhung khai bao tuong minh de khong phu thuoc
+# vao heuristic: mot lan doi LF->CRLF trong cac file nay la hong file.
+*.onnx binary
+*.vslm binary
+*.task binary
