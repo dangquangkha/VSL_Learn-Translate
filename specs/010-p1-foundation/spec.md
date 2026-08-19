@@ -122,6 +122,47 @@ ví dụ `P01__xin_chao__20260819T213000123Z.vslm`
 
 Công cụ quay tạm, **độc lập hoàn toàn** với `frontend/`. Mục đích duy nhất: để 5 thành viên nhóm thu được 720 clip trong sáng mai. Không phải Recorder thật (đó là `P3-2` của An, có consent, metadata, kiểm tra thiết bị đầy đủ).
 
+### 12 ký hiệu demo — ĐÃ CHỐT
+
+Nguyên tắc chọn: tránh các cặp dễ nhầm, trải đều về **vị trí thực hiện** (mặt / ngực / không gian trung tính) và **kiểu chuyển động**. Với 12 lớp mà chỉ ~60 mẫu/lớp, hai ký hiệu giống nhau là đủ để kéo tụt độ chính xác trên sân khấu.
+
+| id | code | Lý do chọn |
+|---|---|---|
+| 1 | `xin_chao` | Chào hỏi, thực hiện gần đầu |
+| 2 | `cam_on` | Xã giao, khác vị trí với `xin_chao` |
+| 5 | `ban` | Chỉ ra ngoài |
+| 6 | `toi` | Chỉ vào mình — tương phản rõ với `ban` |
+| 10 | `khong` | Phủ định |
+| 11 | `co` | Khẳng định — tương phản rõ với `khong` |
+| 12 | `giup_do` | Hai tay, chuyển động nâng |
+| 15 | `hoc` | Trừu tượng |
+| 21 | `gia_dinh` | Hai tay, chuyển động vòng |
+| 30 | `nha` | Hai tay tạo hình mái — khác biệt nhất trong tập |
+| 34 | `an` | Tay đưa lên miệng |
+| 38 | `di` | Chuyển động ngang |
+
+Cộng lớp `idle` (id 0) → **13 lớp** cho model demo.
+
+**Đã loại có chủ đích:**
+
+| Loại bỏ | Vì |
+|---|---|
+| `tam_biet` | Dễ nhầm `xin_chao` — cả hai thường là động tác vẫy tay |
+| `xin_loi` | Dễ nhầm `cam_on` — cùng xuất phát từ vùng cằm/miệng |
+| `uong` | Dễ nhầm `an` — cùng vị trí ở miệng |
+| `anh` `chi` `em` `bo` `me` `ong` `ba` | Nhóm người thân thường chung hình tay, chỉ khác vị trí |
+| `hom_nay` `ngay_mai` `hom_qua` | **Rủi ro nhầm cao nhất** — thường cùng gốc, chỉ khác hướng chuyển động |
+
+> **Cần xác minh bằng mắt:** danh sách trên dựa trên đặc điểm chung của ngôn ngữ ký hiệu, **chưa đối chiếu video QIPEDC thật**. Tra thử 12 từ này trên `qipedc.moet.gov.vn/dictionary` (~5 phút) để xác nhận chúng thật sự khác nhau rõ; thấy cặp nào giống thì đổi sang từ khác trong `shared/labels.json`. Việc này đồng thời hoàn thành mốc kiểm chứng tuần 1 của SRS.
+
+### Ghi nhận: `shared/labels.json` không khớp SRS Phụ lục A
+
+Hai danh sách khác nhau đáng kể. `labels.json` **không có** số đếm (một…năm), `o_dau`, `can`, `ngu`, `dau`, `benh_vien`, `nha_ve_sinh`, `tien`, `buon`, `met`, `doi`, `khat`, `sang`, `chieu`, `toi_(buổi)`; ngược lại nó **có** `hoc`, `tieng`, `ky_hieu`, `viet_nam`, `gap_go`, `ong`, `ba`, `nha`, `truong_hoc`, `thay_co`, `com`, `den`, `lam_viec`, `nghi_ngoi`, `gio`, `yeu`, `dep` — những từ không có trong Phụ lục A.
+
+**Xử lý:** theo `AGENTS.md` §1.1, `shared/labels.json` là nguồn sự thật duy nhất và thắng SRS về thứ tự ưu tiên → dùng `labels.json`, không sửa.
+
+**Hệ quả phải nêu trong báo cáo:** `labels.json` **không có ký hiệu tĩnh nào** (SRS giữ số đếm chính là để chứng minh model xử lý được cả hai loại tĩnh và động). Điểm phân tích này hiện đang mất. Không ảnh hưởng demo tuần này, nhưng phải nói rõ khi bảo vệ thay vì để hội đồng phát hiện.
+
 ### Yêu cầu chức năng
 
 | Mã | Yêu cầu |
