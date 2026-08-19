@@ -34,6 +34,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/api/signs/**", "/api/phrases/**").permitAll()
+                // FR-C01: Participant self-registration does not require prior auth
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/collection/participants").permitAll()
                 .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                 .requestMatchers("/api/practice/**", "/api/learning/**").hasAnyAuthority("LEARNER", "ADMIN")
                 .anyRequest().authenticated()

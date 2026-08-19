@@ -29,3 +29,7 @@ node_modules/
 .idea/
 *.swp
 .DS_Store
+
+# Java / Maven build output
+backend/target/
+
