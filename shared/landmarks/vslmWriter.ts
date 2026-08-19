@@ -4,11 +4,23 @@
  *   [float32 LE landmarks F*75*4][float32 LE timestamps F][uint8 mask F*3]
  * Tat ca so nhieu byte deu little-endian, ghi tuong minh bang DataView de
  * khong phu thuoc endianness cua platform.
+ *
+ * Chuyen tu tools/recorder-lite/src/vslmWriter.ts (P1-4, giai doan 2) de dung
+ * chung cho moi ung dung ghi file .vslm - contract nhi phan nay da duoc
+ * verify cheo voi ai_pipeline/data/landmark_io.py, sai mot byte offset la
+ * hong toan bo du lieu quay va rat kho phat hien nen KHONG de tung noi tu
+ * viet lai.
+ *
+ * Khac biet duy nhat so voi ban goc: header.recorder_version khong con lay
+ * tu hang so RECORDER_VERSION co dinh cua rieng recorder-lite ("lite-1") ma
+ * duoc truyen vao qua VslmWriteInput.recorderVersion, de Recorder that cua
+ * P3 ghi gia tri khac duoc. RECORDER_VERSION van con o
+ * tools/recorder-lite/src/types.ts, recorder-lite tu truyen no vao khi goi
+ * buildVslmFile().
  */
 import {
   POINTS_PER_FRAME,
   POINT_LAYOUT,
-  RECORDER_VERSION,
   VALUES_PER_POINT,
   type FrameSample,
   type VslmHeader,
@@ -25,6 +37,8 @@ export interface VslmWriteInput {
   videoHeight: number;
   /** ISO 8601 UTC, vd "2026-08-19T21:30:00.000Z". Mac dinh: thoi diem bat dau ghi. */
   recordedAt: string;
+  /** Nhan dang ung dung ghi file, vd "lite-1" cho recorder-lite. Ghi vao header.recorder_version. */
+  recorderVersion: string;
 }
 
 export interface VslmFile {
@@ -48,7 +62,7 @@ function buildHeader(input: VslmWriteInput): VslmHeader {
     video_width: input.videoWidth,
     video_height: input.videoHeight,
     recorded_at: input.recordedAt,
-    recorder_version: RECORDER_VERSION,
+    recorder_version: input.recorderVersion,
   };
 }
 
