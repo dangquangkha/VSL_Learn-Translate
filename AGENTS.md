@@ -74,6 +74,53 @@ Dự án tuân thủ chặt chẽ các quyết định kiến trúc bất di b�
 
 ---
 
+## 4.1 BẮT BUỘC — CẬP NHẬT BẢNG TIẾN ĐỘ `TIENDO.html`
+
+Dự án chạy theo mô hình **5 làn song song có cổng chặn** (`PHAN_CONG.md`). Người sau không biết được mình đã tới lượt hay chưa nếu người trước không cập nhật trạng thái. Vì vậy:
+
+**Quy tắc bất di bất dịch:** sau khi hoàn thành **bất kỳ đầu việc nào** có mã trong `PHAN_CONG.md` (`P1-1`, `P2-3`, …), agent **BẮT BUỘC** cập nhật `TIENDO.html` **trong cùng commit** với code của đầu việc đó. Một đầu việc chưa cập nhật `TIENDO.html` được coi là **chưa hoàn thành**.
+
+**Cách cập nhật — chỉ sửa khối dữ liệu, không đụng phần còn lại:**
+
+1. Mở `TIENDO.html`, tìm khối được đánh dấu `/* === BEGIN STATUS DATA === */ … /* === END STATUS DATA === */` ở đầu file.
+2. Đổi `status` của đầu việc vừa xong thành `"done"`.
+3. Đổi `status` của đầu việc kế tiếp mình sẽ làm thành `"doing"`.
+4. Cập nhật `updated` (thời điểm) và `updatedBy` (mã người: `P1`…`P5`).
+5. **KHÔNG** sửa bất kỳ dòng nào ngoài khối đó — phần render, CSS và logic tính toán là bất biến.
+
+**Ràng buộc kỹ thuật:**
+
+- Giá trị `status` hợp lệ **chỉ có ba**: `"todo"`, `"doing"`, `"done"`.
+- **KHÔNG được tự ghi trạng thái `blocked`** — trạng thái bị chặn được suy ra tự động từ cổng (`gates`) và mốc (`milestones`). Ghi tay sẽ làm sai bảng.
+- Cổng (`shell`, `onnxDummy`, `useLandmarks`, `recorderLite`) **tự sáng** khi đầu việc sinh ra nó chuyển sang `"done"`. Không có trường cổng nào để sửa tay.
+- Mốc (`m1`, `m2`, `m3`) là việc đồng bộ của cả nhóm, chỉ đổi sang `"done"` khi hoạt động tương ứng đã thực sự hoàn tất.
+- Khi cập nhật, **giữ nguyên định dạng** (thụt lề, dấu phẩy, comment) để `git diff` gọn và tránh xung đột khi 5 người cùng push.
+
+**Nếu đầu việc vừa xong là một cổng** (`gate` khác `null`), agent phải nêu rõ trong phần mô tả commit rằng cổng này đã mở và những ai được gỡ chặn — ví dụ: `feat(fe): dựng FE shell — mở cổng shell, gỡ chặn P3, P4, P5`.
+
+---
+
+## 4.2 CHẾ ĐỘ SPRINT DEMO (nếu được kích hoạt)
+
+> **Trạng thái: ĐÃ KÍCH HOẠT — từ 2026-08-19 đến 2026-08-26.** Kích hoạt bởi P1 (Tài). Hết ngày 26/08 tự động trở lại quy trình SDD đầy đủ ở §1.1.
+
+Quy trình Spec-Driven Development đầy đủ ở §1.1 (spec 8 thành phần → plan → tasks → implement) là mặc định của dự án. Trong giai đoạn chạy nước rút để có bản demo, quy trình đó có thể tiêu tốn nhiều thời gian hơn phần thực thi.
+
+Khi chế độ này **được kích hoạt**, các nới lỏng sau có hiệu lực — và **chỉ** các nới lỏng sau:
+
+| Vẫn giữ nguyên (không được bỏ) | Được nới lỏng trong sprint demo |
+|---|---|
+| Cấm endpoint `/predict` — inference chỉ chạy client-side | Spec đầy đủ 8 thành phần → rút gọn còn Context + Acceptance Criteria |
+| `shared/labels.json` là nguồn sự thật duy nhất cho nhãn | Tag truy vết `// EARS[...]` → không bắt buộc |
+| Zero training/serving skew — tiền xử lý nằm trong ONNX graph | Unit test cho mọi thay đổi → chỉ bắt buộc cho `ai_pipeline` và logic decoder |
+| Golden Contract Test T-02 (< 1e-3) | Đánh số spec-kit tuần tự → có thể gộp nhiều đầu việc vào một spec |
+| Cấm hardcode secrets, cấm push thẳng `main` | |
+| **Cập nhật `TIENDO.html` (§4.1)** | |
+
+Sau khi sprint kết thúc, mọi phần nới lỏng phải được bù lại trước khi merge vào nhánh chính của dự án.
+
+---
+
 ## 5. BẢO MẬT & THAM CHIẾU BẢN THỂ (SECURITY & REFERENCES)
 - **Secrets Management**:
   - Database URL: Tham chiếu biến môi trường `SPRING_DATASOURCE_URL` / `DATABASE_URL` (không hardcode).
