@@ -240,10 +240,16 @@ File `.onnx` với **trọng số ngẫu nhiên** nhưng **interface đúng §2.
 
 ### Acceptance Criteria — P1-2
 
-- [ ] `AC-10` File `.onnx` nhận đúng 3 input theo §2.1 và trả `logits [1, 51]`.
-- [ ] `AC-11` Nạp được bằng `onnxruntime` phía Python **và** bằng `onnxruntime-web` trong trình duyệt.
-- [ ] `AC-12` Metadata nhúng `label_hash` khớp với `shared/labels.json` (dùng `ai_pipeline/utils/label_hash.py`).
-- [ ] `AC-13` Có file `models/DUMMY.md` ghi rõ đây là model giả, không dùng để đánh giá.
+- [x] `AC-10` File `.onnx` nhận đúng 3 input theo §2.1 và trả `logits [1, 51]`. — **đã kiểm chứng** bằng `test_onnx_io_contract` (tên/dtype/shape kiểm qua cả `onnx.load` lẫn `onnxruntime.InferenceSession`)
+- [~] `AC-11` Nạp được bằng `onnxruntime` phía Python **và** bằng `onnxruntime-web` trong trình duyệt. — `onnxruntime` Python ✅ (parity `max|diff| = 3.9e-07` trên 5 mẫu). `onnxruntime-web` 1.27.0 **backend wasm** ✅ (parity `max|diff| = 9.5e-07` trên 4 mẫu) nhưng chạy **trên Node**, chưa mở trong trình duyệt thật — cùng runtime wasm, khác host. Chốt hẳn khi P2 nạp được trong Worker.
+- [x] `AC-12` Metadata nhúng `label_hash` khớp với `shared/labels.json` (dùng `ai_pipeline/utils/label_hash.py`). — **đã kiểm chứng**; đồng thời phát hiện và sửa lỗi hai công thức hash lệch nhau khiến `labelVerifier.ts` từ chối nạp model 100% (xem `models/DUMMY.md` §9)
+- [x] `AC-13` Có file `models/DUMMY.md` ghi rõ đây là model giả, không dùng để đánh giá.
+
+> **Lỗi đáng nhớ, phát hiện khi làm P1-2 — P1-9 phải tránh lặp lại:** ONNX không có op
+> `Atan2`, exporter phân rã nó thành phép chia `y/x`. Khung thiếu vai có vector vai
+> `(0,0)`: PyTorch định nghĩa `atan2(0,0) = 0` còn graph ONNX tính `0/0 = NaN`, NaN lan
+> ra toàn bộ `logits`. Chỉ lộ khi buffer chưa đầy 60 khung — tức đúng tình huống thật
+> của chế độ Dịch, và **không** lộ nếu chỉ test bằng dữ liệu đủ 60 khung hợp lệ.
 
 ---
 

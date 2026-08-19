@@ -126,7 +126,7 @@
 <script>
 /* === BEGIN STATUS DATA ====================================================== */
 const STATUS = {
-  updated:   "2026-08-19 — P1-1 xong, cong recorderLite MO, ca nhom quay duoc",
+  updated:   "2026-08-19 — P1-1 và P1-2 xong, cổng recorderLite + onnxDummy MỞ",
   updatedBy: "P1 (Tài)",
 
   /* Mốc đồng bộ cả nhóm — sửa tay: "todo" | "done" */
@@ -139,7 +139,7 @@ const STATUS = {
   people: [
     { id:"P1", name:"Tài", role:"AI pipeline", tasks:[
       { id:"P1-1",  ph:1, lb:"recorder-lite",                    status:"done", gate:"recorderLite" },
-      { id:"P1-2",  ph:1, lb:"Export ONNX giả (đúng shape)",     status:"todo", gate:"onnxDummy" },
+      { id:"P1-2",  ph:1, lb:"Export ONNX giả (đúng shape)",     status:"done", gate:"onnxDummy" },
       { id:"P1-3",  ph:1, lb:"Chốt định dạng file landmark",     status:"done" },
       { id:"P1-4",  ph:1, lb:"Module useLandmarks",              status:"todo", gate:"useLandmarks" },
       { id:"P1-5",  ph:2, lb:"Dataset builder",                  status:"todo", needs:["m1"] },
