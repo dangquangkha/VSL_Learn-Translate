@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiến độ — VSL Learn & Translate</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2430; --line:#2b3440;
+    --txt:#e6edf3; --dim:#8b949e; --faint:#6e7681;
+    --done:#3fb950; --doing:#e3b341; --blocked:#f85149; --todo:#484f58;
+    --accent:#58a6ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:14px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+  .wrap{max-width:1500px;margin:0 auto;padding:20px}
+
+  header{display:flex;flex-wrap:wrap;gap:16px;align-items:baseline;
+         justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  h1{font-size:19px;margin:0;font-weight:650}
+  h1 small{color:var(--dim);font-weight:400;font-size:13px;margin-left:8px}
+  .meta{color:var(--dim);font-size:12.5px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .meta b{color:var(--txt);font-weight:600}
+  label.auto{cursor:pointer;user-select:none;display:flex;gap:5px;align-items:center}
+
+  h2{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);
+     margin:26px 0 11px;font-weight:600}
+
+  /* ---------- progress bar ---------- */
+  .bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:9px}
+  .bar i{display:block;height:100%;background:var(--done);transition:width .4s}
+
+  /* ---------- gates ---------- */
+  .gates{display:flex;gap:9px;flex-wrap:wrap}
+  .gate{flex:1 1 190px;background:var(--panel);border:1px solid var(--line);
+        border-left:3px solid var(--todo);border-radius:7px;padding:11px 13px}
+  .gate .t{font-weight:600;font-size:13.5px}
+  .gate .s{font-size:11.5px;color:var(--dim);margin-top:3px}
+  .gate .who{font-size:11px;color:var(--faint);margin-top:5px}
+  .gate.done{border-left-color:var(--done);background:#12261a}
+  .gate.done .t{color:var(--done)}
+  .gate.doing{border-left-color:var(--doing);background:#2b2410;
+              box-shadow:0 0 0 1px rgba(227,179,65,.28), 0 0 22px -6px rgba(227,179,65,.55)}
+  .gate.doing .t{color:var(--doing)}
+
+  /* ---------- milestones ---------- */
+  .stones{display:flex;gap:9px;flex-wrap:wrap}
+  .stone{flex:1 1 240px;background:var(--panel);border:1px solid var(--line);
+         border-radius:7px;padding:11px 13px;opacity:.5}
+  .stone .t{font-weight:600;font-size:13.5px}
+  .stone .s{font-size:11.5px;color:var(--dim);margin-top:3px}
+  .stone.done{opacity:1;border-color:var(--done);background:#12261a}
+  .stone.done .t{color:var(--done)}
+  .stone.ready{opacity:1;border-color:var(--doing);background:#2b2410;
+               box-shadow:0 0 22px -8px rgba(227,179,65,.6)}
+  .stone.ready .t{color:var(--doing)}
+
+  /* ---------- swimlanes ---------- */
+  .grid{border:1px solid var(--line);border-radius:9px;overflow-x:auto;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;min-width:1080px}
+  th,td{border-bottom:1px solid var(--line);vertical-align:top;padding:9px 8px}
+  th{background:var(--panel2);font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+     color:var(--dim);font-weight:600;text-align:left;position:sticky;top:0}
+  td.lane{width:158px;background:var(--panel2);border-right:1px solid var(--line)}
+  .pid{font-weight:700;font-size:14px}
+  .prole{font-size:11.5px;color:var(--dim);margin-top:2px}
+  .pname{font-size:11.5px;color:var(--accent);margin-top:4px}
+  .pct{font-size:11px;color:var(--faint);margin-top:6px}
+  tr:last-child td{border-bottom:none}
+
+  .task{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--todo);
+        border-radius:6px;padding:7px 9px;margin-bottom:6px;font-size:12.5px;position:relative}
+  .task:last-child{margin-bottom:0}
+  .task .id{font-size:10px;color:var(--faint);font-family:ui-monospace,Consolas,monospace}
+  .task .lb{margin-top:1px;line-height:1.35}
+  .task .need{font-size:10.5px;margin-top:4px;color:var(--blocked)}
+  .task.done{border-left-color:var(--done);background:#11241a}
+  .task.done .lb{color:var(--done);text-decoration:line-through;text-decoration-color:#2a6b36}
+  .task.doing{border-left-color:var(--doing);background:#2a2310;
+              box-shadow:0 0 0 1px rgba(227,179,65,.3), 0 0 20px -6px rgba(227,179,65,.65);
+              animation:pulse 2.4s ease-in-out infinite}
+  .task.doing .lb{color:var(--doing);font-weight:600}
+  .task.blocked{border-left-color:var(--blocked);background:#2a1416;opacity:.75}
+  .task.blocked .lb{color:#ff9d96}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 1px rgba(227,179,65,.3),0 0 20px -6px rgba(227,179,65,.65)}
+                   50%{box-shadow:0 0 0 1px rgba(227,179,65,.5),0 0 26px -4px rgba(227,179,65,.9)}}
+
+  /* ---------- blocking panel ---------- */
+  .panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px}
+  .card h3{margin:0 0 9px;font-size:13px;font-weight:650}
+  .card ul{margin:0;padding-left:17px}
+  .card li{margin-bottom:5px;font-size:12.5px}
+  .ok{color:var(--done)}
+  .warn{color:var(--blocked)}
+  code{background:var(--panel2);padding:1.5px 5px;border-radius:4px;
+       font:12px ui-monospace,Consolas,monospace;color:#a5d6ff}
+
+  footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);
+         color:var(--faint);font-size:12px;line-height:1.65}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:9px;font-size:12px;color:var(--dim)}
+  .legend span{display:flex;gap:6px;align-items:center}
+  .dot{width:9px;height:9px;border-radius:2px;display:inline-block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!--
+================================================================================
+  KHU VỰC DUY NHẤT ĐƯỢC PHÉP SỬA — mọi phần khác của file này KHÔNG ĐỤNG VÀO.
+
+  Sau khi làm xong một việc, cập nhật đúng 3 chỗ:
+    1. status của task vừa xong  -> "done"
+    2. status của task tiếp theo -> "doing"
+    3. updated + updatedBy       -> thời điểm và mã người (P1..P5)
+
+  Giá trị status hợp lệ:  "todo" | "doing" | "done"
+    (KHÔNG tự ghi "blocked" — trạng thái bị chặn được TỰ TÍNH từ cổng)
+
+  Cổng (gates) tự sáng khi task sinh ra nó chuyển sang "done" — không sửa tay.
+  Mốc (milestones) sửa tay khi cả nhóm hoàn thành: "todo" -> "done".
+================================================================================
+-->
+<script>
+/* === BEGIN STATUS DATA ====================================================== */
+const STATUS = {
+  updated:   "2026-08-19 — P1-3 xong, P1-1 chờ test webcam",
+  updatedBy: "P1 (Tài)",
+
+  /* Mốc đồng bộ cả nhóm — sửa tay: "todo" | "done" */
+  milestones: {
+    m1: "todo",   /* Quay đợt 1 — 12 ký hiệu x 12 lần + 15 clip idle/người */
+    m2: "todo",   /* Quay đợt 2 — bù ký hiệu yếu                          */
+    m3: "todo"    /* Golden test PASS -> giao model thật cho P2, P4        */
+  },
+
+  people: [
+    { id:"P1", name:"Tài", role:"AI pipeline", tasks:[
+      { id:"P1-1",  ph:1, lb:"recorder-lite",                    status:"doing", gate:"recorderLite" },
+      { id:"P1-2",  ph:1, lb:"Export ONNX giả (đúng shape)",     status:"todo", gate:"onnxDummy" },
+      { id:"P1-3",  ph:1, lb:"Chốt định dạng file landmark",     status:"done" },
+      { id:"P1-4",  ph:1, lb:"Module useLandmarks",              status:"todo", gate:"useLandmarks" },
+      { id:"P1-5",  ph:2, lb:"Dataset builder",                  status:"todo", needs:["m1"] },
+      { id:"P1-6",  ph:2, lb:"train.py + training loop",         status:"todo" },
+      { id:"P1-7",  ph:3, lb:"Train lần 1 + đánh giá",           status:"todo", needs:["m1"] },
+      { id:"P1-8",  ph:4, lb:"Train lần 2 (data đầy đủ)",        status:"todo", needs:["m2"] },
+      { id:"P1-9",  ph:4, lb:"Export ONNX thật + int8",          status:"todo" },
+      { id:"P1-10", ph:4, lb:"GOLDEN TEST (< 1e-3)",             status:"todo" },
+      { id:"P1-11", ph:5, lb:"Đánh giá accuracy theo người",     status:"todo" }
+    ]},
+
+    { id:"P2", name:"Khải", role:"Shell + chế độ Dịch", tasks:[
+      { id:"P2-1",  ph:1, lb:"FE shell (Vite+React+TS, router, API client, JWT)", status:"todo", gate:"shell" },
+      { id:"P2-2",  ph:2, lb:"Web Worker + nạp ONNX",            status:"todo", needs:["onnxDummy"] },
+      { id:"P2-3",  ph:2, lb:"Ring buffer 2s + sliding window",  status:"todo", needs:["useLandmarks"] },
+      { id:"P2-4",  ph:3, lb:"Decoder (0.7 / 3 cửa sổ / khoá 1s)", status:"todo" },
+      { id:"P2-5",  ph:3, lb:"UI chế độ Dịch",                   status:"todo" },
+      { id:"P2-6",  ph:5, lb:"Thay model thật + đo độ trễ",      status:"todo", needs:["m3"] },
+      { id:"P2-7",  ph:5, lb:"Service worker cache (offline)",   status:"todo" }
+    ]},
+
+    { id:"P3", name:"An", role:"Recorder + thu thập", tasks:[
+      { id:"P3-1",  ph:1, lb:"BE collection (participants, consents, sessions, clips)", status:"todo" },
+      { id:"P3-2",  ph:2, lb:"Recorder thật trên shell",         status:"todo", needs:["shell","useLandmarks"] },
+      { id:"P3-3",  ph:3, lb:"Kiểm tra thiết bị + tự loại clip", status:"todo" },
+      { id:"P3-4",  ph:3, lb:"Upload R2 + hàng đợi nền",         status:"todo" },
+      { id:"P3-5",  ph:4, lb:"Điều phối quay đợt 2",             status:"todo" },
+      { id:"P3-6",  ph:4, lb:"Layout Android (nếu kịp)",         status:"todo" }
+    ]},
+
+    { id:"P4", name:"Hùng", role:"Chế độ Học", tasks:[
+      { id:"P4-1",  ph:1, lb:"BE vocabulary + seed 12 ký hiệu",  status:"todo" },
+      { id:"P4-2",  ph:2, lb:"FE danh sách từ vựng",             status:"todo", needs:["shell"] },
+      { id:"P4-3",  ph:2, lb:"FE luyện tập (chấm điểm, mock)",   status:"todo", needs:["shell","onnxDummy"] },
+      { id:"P4-4",  ph:3, lb:"BE learning (attempts, progress)", status:"todo" },
+      { id:"P4-5",  ph:3, lb:"Leitner + màn tiến độ",            status:"todo" },
+      { id:"P4-6",  ph:5, lb:"Mock -> model thật",               status:"todo", needs:["m3"] }
+    ]},
+
+    { id:"P5", name:"Đức", role:"Admin + registry/stats", tasks:[
+      { id:"P5-1",  ph:1, lb:"BE modelregistry (/api/model/active)", status:"todo" },
+      { id:"P5-2",  ph:1, lb:"BE stats",                         status:"todo" },
+      { id:"P5-3",  ph:2, lb:"FE admin dashboard",               status:"todo", needs:["shell"] },
+      { id:"P5-4",  ph:3, lb:"BE quality (worker hậu kiểm clip)", status:"todo" },
+      { id:"P5-5",  ph:3, lb:"FE quản lý phiên bản model",       status:"todo", needs:["shell"] },
+      { id:"P5-6",  ph:4, lb:"FE trang minh bạch dataset",       status:"todo", needs:["shell"] }
+    ]}
+  ]
+};
+/* === END STATUS DATA ======================================================== */
+</script>
+
+<header>
+  <h1>Tiến độ — VSL Learn &amp; Translate <small>demo sprint</small></h1>
+  <div class="meta">
+    <span>Cập nhật: <b id="mUpd">—</b></span>
+    <span>bởi <b id="mBy">—</b></span>
+    <label class="auto"><input type="checkbox" id="auto" checked> tự tải lại 30s</label>
+  </div>
+</header>
+
+<div class="bar"><i id="ovBar"></i></div>
+<div class="meta" style="margin-top:7px"><span id="ovTxt">—</span></div>
+
+<h2>Cổng chặn — giai đoạn ①</h2>
+<div class="gates" id="gates"></div>
+
+<h2>Mốc đồng bộ cả nhóm</h2>
+<div class="stones" id="stones"></div>
+
+<h2>5 làn song song</h2>
+<div class="grid">
+  <table>
+    <thead><tr>
+      <th>Người</th>
+      <th>① Khởi động</th><th>② Dựng lõi</th><th>③ Số đầu tiên</th>
+      <th>④ Model thật</th><th>⑤ Tích hợp</th>
+    </tr></thead>
+    <tbody id="lanes"></tbody>
+  </table>
+</div>
+<div class="legend">
+  <span><i class="dot" style="background:var(--done)"></i> xong</span>
+  <span><i class="dot" style="background:var(--doing)"></i> đang làm</span>
+  <span><i class="dot" style="background:var(--blocked)"></i> bị chặn (tự tính)</span>
+  <span><i class="dot" style="background:var(--todo)"></i> chưa làm</span>
+</div>
+
+<h2>Ai đang chặn ai</h2>
+<div class="panels">
+  <div class="card"><h3>🔴 Đang chặn</h3><ul id="blk"></ul></div>
+  <div class="card"><h3>▶ Việc tiếp theo của từng người</h3><ul id="nxt"></ul></div>
+</div>
+
+<footer>
+  <b>Cách cập nhật:</b> mở file này bằng editor, sửa <b>duy nhất</b> khối
+  <code>BEGIN STATUS DATA … END STATUS DATA</code> ở đầu file, rồi commit.
+  Đổi <code>status</code> của việc vừa xong thành <code>"done"</code>, việc tiếp theo thành
+  <code>"doing"</code>, và cập nhật <code>updated</code> + <code>updatedBy</code>.
+  Cổng và trạng thái “bị chặn” <b>tự tính</b> — không sửa tay.
+  Chi tiết đầu việc xem <code>PHAN_CONG.md</code>.
+</footer>
+
+</div>
+
+<script>
+const PHASES=[1,2,3,4,5];
+const GATE_META={
+  shell:        {t:"FE shell",        s:"Chặn toàn bộ frontend của P3, P4, P5", who:"P2"},
+  onnxDummy:    {t:"ONNX giả",        s:"Chặn Worker của P2, chấm điểm của P4", who:"P1"},
+  useLandmarks: {t:"useLandmarks",    s:"Chặn ring buffer của P2, Recorder của P3", who:"P1"},
+  recorderLite: {t:"recorder-lite",   s:"Chặn CẢ NHÓM — không quay được", who:"P1"}
+};
+const STONE_META={
+  m1:{t:"MỐC 1 — Quay đợt 1", s:"12 ký hiệu × 12 lần + 15 clip idle/người", need:["recorderLite"]},
+  m2:{t:"MỐC 2 — Quay đợt 2", s:"Bù ký hiệu P1 báo yếu sau train lần 1", need:[]},
+  m3:{t:"MỐC 3 — Giao model thật", s:"Golden test PASS → P2 và P4 thay file", need:[]}
+};
+
+const allTasks = STATUS.people.flatMap(p=>p.tasks.map(t=>({...t,pid:p.id})));
+const byId = Object.fromEntries(allTasks.map(t=>[t.id,t]));
+
+/* cổng: tự suy từ task sinh ra nó */
+const gates={};
+for(const k in GATE_META){
+  const src=allTasks.find(t=>t.gate===k);
+  gates[k]= src ? src.status : "todo";
+}
+const isOpen = k => (k in gates) ? gates[k]==="done" : STATUS.milestones[k]==="done";
+
+function blockedBy(t){
+  if(t.status==="done") return [];
+  return (t.needs||[]).filter(n=>!isOpen(n));
+}
+const labelOf = k => GATE_META[k] ? GATE_META[k].t : (STONE_META[k]? STONE_META[k].t.split("—")[0].trim() : k);
+
+/* ---- header ---- */
+mUpd.textContent=STATUS.updated; mBy.textContent=STATUS.updatedBy;
+const done=allTasks.filter(t=>t.status==="done").length;
+ovBar.style.width=Math.round(done/allTasks.length*100)+"%";
+ovTxt.textContent=`${done}/${allTasks.length} đầu việc hoàn thành · ${Math.round(done/allTasks.length*100)}%`;
+
+/* ---- gates ---- */
+gatesEl(); function gatesEl(){
+  document.getElementById("gates").innerHTML=Object.entries(GATE_META).map(([k,m])=>{
+    const src=allTasks.find(t=>t.gate===k);
+    const st=src?src.status:"todo";
+    return `<div class="gate ${st==="done"?"done":st==="doing"?"doing":""}">
+      <div class="t">${st==="done"?"✓ ":st==="doing"?"◐ ":"○ "}${m.t}</div>
+      <div class="s">${m.s}</div>
+      <div class="who">${m.who} · ${src?src.id:""}</div></div>`;
+  }).join("");
+}
+
+/* ---- milestones ---- */
+document.getElementById("stones").innerHTML=Object.entries(STONE_META).map(([k,m])=>{
+  const st=STATUS.milestones[k];
+  const ready = st!=="done" && m.need.every(isOpen) && m.need.length>0;
+  return `<div class="stone ${st==="done"?"done":ready?"ready":""}">
+    <div class="t">${st==="done"?"✓ ":ready?"▶ ":"○ "}${m.t}</div>
+    <div class="s">${m.s}${ready?" — <b>sẵn sàng chạy</b>":""}</div></div>`;
+}).join("");
+
+/* ---- lanes ---- */
+document.getElementById("lanes").innerHTML=STATUS.people.map(p=>{
+  const d=p.tasks.filter(t=>t.status==="done").length;
+  const cells=PHASES.map(ph=>{
+    const ts=p.tasks.filter(t=>t.ph===ph);
+    if(!ts.length) return "<td></td>";
+    return "<td>"+ts.map(t=>{
+      const b=blockedBy(t);
+      const cls=t.status==="done"?"done":t.status==="doing"?"doing":b.length?"blocked":"";
+      return `<div class="task ${cls}"><div class="id">${t.id}</div>
+        <div class="lb">${t.lb}</div>
+        ${b.length?`<div class="need">⛔ chờ: ${b.map(labelOf).join(", ")}</div>`:""}</div>`;
+    }).join("")+"</td>";
+  }).join("");
+  return `<tr><td class="lane"><div class="pid">${p.id}</div>
+    <div class="prole">${p.role}</div><div class="pname">${p.name}</div>
+    <div class="pct">${d}/${p.tasks.length} xong</div></td>${cells}</tr>`;
+}).join("");
+
+/* ---- blocking panel ---- */
+const blocked=allTasks.filter(t=>t.status!=="done" && blockedBy(t).length);
+document.getElementById("blk").innerHTML = blocked.length
+  ? [...new Set(blocked.flatMap(t=>blockedBy(t)))].map(g=>{
+      const vic=blocked.filter(t=>blockedBy(t).includes(g));
+      const owner=GATE_META[g]?GATE_META[g].who:"cả nhóm";
+      return `<li class="warn"><b>${labelOf(g)}</b> (${owner}) đang chặn:
+        ${[...new Set(vic.map(v=>v.pid))].join(", ")}
+        <span style="color:var(--faint)">— ${vic.map(v=>v.id).join(", ")}</span></li>`;
+    }).join("")
+  : '<li class="ok">Không có ai bị chặn.</li>';
+
+document.getElementById("nxt").innerHTML=STATUS.people.map(p=>{
+  const doing=p.tasks.find(t=>t.status==="doing");
+  if(doing) return `<li><b>${p.id}</b> — đang làm <span style="color:var(--doing)">${doing.id} ${doing.lb}</span></li>`;
+  const next=p.tasks.find(t=>t.status==="todo" && !blockedBy(t).length);
+  if(next) return `<li><b>${p.id}</b> — tiếp theo: ${next.id} ${next.lb}</li>`;
+  const stuck=p.tasks.find(t=>t.status==="todo");
+  return stuck
+    ? `<li><b>${p.id}</b> — <span class="warn">bị chặn</span>, chờ ${blockedBy(stuck).map(labelOf).join(", ")}</li>`
+    : `<li><b>${p.id}</b> — <span class="ok">xong hết phần của mình</span></li>`;
+}).join("");
+
+/* ---- auto reload ---- */
+let tm; const chk=document.getElementById("auto");
+const arm=()=>{clearTimeout(tm); if(chk.checked) tm=setTimeout(()=>location.reload(),30000);};
+chk.addEventListener("change",arm); arm();
+</script>
+</body>
+</html>
