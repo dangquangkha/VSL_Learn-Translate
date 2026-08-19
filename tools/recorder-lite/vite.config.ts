@@ -1,17 +1,15 @@
 import { defineConfig } from "vite";
-import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // recorder-lite song song, doc lap voi frontend/, nhung can doc chung
 // shared/labels.json (nguon su that duy nhat cho 51 nhan - xem AGENTS.md).
 //
-// Tren Windows voi duong dan co khoang trang/Unicode, ca __dirname lan
-// import.meta.url co the bi encode sai khi qua Vite alias resolver.
-// Giai phap: dung createRequire de lay duong dan tuyet doi an toan.
-const _require = createRequire(import.meta.url);
-const _filename = fileURLToPath(import.meta.url);
-const _dirname = dirname(_filename);
+// Alias phai khai bao o DANG MANG ({ find, replacement }). Dang object
+// { "@shared": ... } khong resolve duoc "@shared/labels.json" trong setup nay
+// va gay loi vite:import-analysis "Failed to resolve import".
+// Duong dan tuyet doi tinh tu vi tri file config nay: tools/recorder-lite -> repo root.
+const _dirname = dirname(fileURLToPath(import.meta.url));
 
 const sharedDir = resolve(_dirname, "../../shared");
 const repoRoot = resolve(_dirname, "../../");
@@ -25,8 +23,9 @@ export default defineConfig({
   },
   server: {
     fs: {
-      // Tat strict mode de cho phep doc file ngoai root (shared/labels.json)
-      strict: false,
+      // Cho phep dev server doc file ngoai root cua project nay (shared/labels.json).
+      // KHONG dat strict: false - lam vay se tat han co che gioi han phuc vu file
+      // cua Vite va khien `allow` ben duoi thanh vo nghia. `allow` mot minh la du.
       allow: [repoRoot],
     },
   },

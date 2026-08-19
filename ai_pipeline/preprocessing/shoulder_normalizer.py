@@ -43,6 +43,10 @@ class ShoulderNormalizer(nn.Module):
             x_reshaped[:, :, idx:idx+3] = x_reshaped[:, :, idx:idx+3] - midpoint
 
         # Scale by inverse shoulder distance with epsilon protection (FR-011)
+        # shoulder_dist da la [B, T, 1] vi torch.norm dung keepdim=True, nen no
+        # broadcast dung voi [B, T, 333]. KHONG duoc them .unsqueeze(-1): lam vay
+        # se thanh [B, T, 1, 1] va broadcast ra [B, T, T, 333] - thua mot chieu,
+        # khien RotationAligner o buoc sau slice vao chieu rong va nem IndexError.
         scale_factor = 1.0 / (shoulder_dist + self.epsilon)
-        x_reshaped = x_reshaped * scale_factor.unsqueeze(-1)
+        x_reshaped = x_reshaped * scale_factor
         return x_reshaped
