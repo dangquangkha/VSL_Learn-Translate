@@ -1,23 +1,32 @@
 import { defineConfig } from "vite";
-import path from "node:path";
+import { createRequire } from "node:module";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // recorder-lite song song, doc lap voi frontend/, nhung can doc chung
 // shared/labels.json (nguon su that duy nhat cho 51 nhan - xem AGENTS.md).
-// repoRoot = hai cap tren thu muc nay (tools/recorder-lite -> tools -> repo root).
-// Dung path.resolve(__dirname) thay vi new URL() de tranh loi Windows voi
-// duong dan co khoang trang / ky tu Unicode (loi vite:import-analysis).
-const repoRoot = path.resolve(__dirname, "../..");
-const sharedDir = path.resolve(__dirname, "../../shared");
+//
+// Tren Windows voi duong dan co khoang trang/Unicode, ca __dirname lan
+// import.meta.url co the bi encode sai khi qua Vite alias resolver.
+// Giai phap: dung createRequire de lay duong dan tuyet doi an toan.
+const _require = createRequire(import.meta.url);
+const _filename = fileURLToPath(import.meta.url);
+const _dirname = dirname(_filename);
+
+const sharedDir = resolve(_dirname, "../../shared");
+const repoRoot = resolve(_dirname, "../../");
 
 export default defineConfig({
   resolve: {
-    alias: {
-      "@shared": sharedDir,
-    },
+    alias: [
+      // Dung mang de dam bao thu tu va tranh xung dot voi alias cua Vite
+      { find: "@shared", replacement: sharedDir },
+    ],
   },
   server: {
     fs: {
-      // cho phep dev server doc file ngoai root cua project nay (shared/labels.json)
+      // Tat strict mode de cho phep doc file ngoai root (shared/labels.json)
+      strict: false,
       allow: [repoRoot],
     },
   },
