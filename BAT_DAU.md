@@ -153,7 +153,19 @@ Giai đoạn ① là giai đoạn duy nhất **không ai chặn ai** — cả 5 
 - `useLandmarks` — Tài (P1)
 - `recorder-lite` — Tài (P1) *(chưa xong thì cả nhóm không quay được)*
 
-**Sáng mai:** cả nhóm quay dữ liệu đợt 1 — 12 ký hiệu × 12 lần + 15 clip `idle` mỗi người.
+**Sáng mai:** cả nhóm quay dữ liệu đợt 1 — **12 ký hiệu × 12 lần + 15 clip `idle`** mỗi người.
+
+**12 ký hiệu đã chốt** (recorder-lite tự hiện sẵn, không phải tự chọn):
+
+| | | | |
+|---|---|---|---|
+| xin chào | cảm ơn | bạn | tôi |
+| không | có | giúp đỡ | học |
+| gia đình | nhà | ăn | đi |
+
+Cộng lớp `idle` (ngồi yên, gãi đầu, uống nước, chỉnh tóc) → **13 lớp**.
+
+Lý do chọn đúng 12 từ này — và vì sao loại `tạm biệt`, `xin lỗi`, `uống`, nhóm người thân, nhóm thời gian — xem `specs/010-p1-foundation/spec.md` §4.
 
 ---
 
