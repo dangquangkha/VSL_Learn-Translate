@@ -100,24 +100,39 @@ Hai con số script in ra:
 
 ---
 
-## 5. Kết quả đo tại chỗ ngày 2026-08-20 (để đối chiếu)
+## 5. Kết quả đo tại chỗ ngày 2026-08-21 (để đối chiếu)
 
 124/295 clip dùng được, 3 người (P02 40 · P04 67 · P05 17).
 
-| Phép chia | Tổng | Chi tiết theo lớp |
+| Phép chia | Test | Chi tiết theo lớp |
 |---|---|---|
-| `test = P02` | **58,1%** | `bo` 87,5% · `me` 83,3% · `xin_loi` 25,0% · `tam_biet` 14,6% |
-| `test = P05` | **63,2%** | `bo` 79,5% · `me` 33,3% |
-| trộn theo cửa sổ | 96,9% | *(vô nghĩa — xem mục 3)* |
+| `test = P02` | **79,7%** | `bo` 100% · `tam_biet` 78,1% · `xin_loi` 68,8% · `me` 64,6% |
+| `test = P05` | **53,7%** | `bo` 78,4% · `me` 8,3% |
 
-Quan hệ rất rõ và đó là điều quan trọng nhất rút ra được:
+Hai con số này đo trên **người model chưa từng thấy**, checkpoint chọn theo tập
+`val` chứ không theo `test`.
 
-| Số người có lớp đó trong tập train | Độ chính xác với người lạ |
-|---|---|
-| 3 người (`bo`, `me`) | **80–88%** |
-| 2 người (`tam_biet`, `xin_loi`) | **15–25%** |
-| 1 người (`chao`, `idle`) | không đo được — mọi phép chia đều hỏng |
+### Vì sao phải có tầng `val` — đo được, không phải lý thuyết
 
-Nút thắt là **số người mỗi lớp**, không phải số clip và cũng không phải kiến trúc
-model. Thêm người thứ 4 cho `chao` và `idle` có giá trị hơn hẳn mọi việc chỉnh
-siêu tham số.
+Bản đầu không có `val`. Đường `test_acc` dao động **45 điểm phần trăm** giữa các
+epoch (0,38 … 0,83), nên:
+
+| Cách lấy số | `test = P02` | Vấn đề |
+|---|---|---|
+| Chọn epoch theo `test` | 84,1% | Rò rỉ thông tin test → luôn đẹp hơn thực tế |
+| Lấy đại epoch cuối | 38,1% | Xổ số — epoch 60 tình cờ có cú nhảy loss |
+| **Chọn theo `val` + hạ dần LR** | **79,7%** | Đúng cách |
+
+Cùng một model, cùng một dữ liệu, ba con số cách nhau 46 điểm. Cách lấy số quan
+trọng ngang với bản thân model.
+
+### Điều rút ra quan trọng nhất
+
+`test = P05` chỉ 53,7% vì lớp `me` tụt còn 8,3%, trong khi cùng lớp đó ở
+`test = P02` đạt 64,6%. Chưa giải thích được: đã thử so quỹ đạo cổ tay giữa các
+người nhưng **độ lệch nội bộ của từng người lớn ngang khoảng cách giữa các
+người**, nên phép đo đó không kết luận được. Cần thêm dữ liệu mới truy ra.
+
+Điều chắc chắn: các lớp chỉ có **1 người** trong tập train (`chao`, `idle`) không
+có phép chia nào đo được chúng. Thêm người thứ 4 cho hai lớp đó vẫn là việc đáng
+làm nhất — hơn mọi chỉnh sửa siêu tham số.
