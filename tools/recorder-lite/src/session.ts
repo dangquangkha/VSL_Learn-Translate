@@ -4,6 +4,7 @@
  * lo tai lai trang (khong bat buoc trong spec nhung an toan hon cho nguoi quay).
  */
 const PARTICIPANT_CODE_KEY = "vsl-recorder-lite:participant_code";
+const RESOLUTION_KEY = "vsl-recorder-lite:resolution_id";
 const countsKey = (participantCode: string): string =>
   `vsl-recorder-lite:counts:${participantCode}`;
 
@@ -13,6 +14,16 @@ export function loadParticipantCode(): string {
 
 export function saveParticipantCode(code: string): void {
   localStorage.setItem(PARTICIPANT_CODE_KEY, code);
+}
+
+/** Muc do phan giai da chon (R-12). Luu id chu khong luu kich thuoc, de doi
+ *  danh sach preset ve sau khong lam hong gia tri da luu. */
+export function loadResolutionId(): string {
+  return localStorage.getItem(RESOLUTION_KEY) ?? "";
+}
+
+export function saveResolutionId(id: string): void {
+  localStorage.setItem(RESOLUTION_KEY, id);
 }
 
 export type SignCounts = Record<string, number>;

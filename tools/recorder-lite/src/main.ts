@@ -13,21 +13,39 @@ import "./style.css";
 // namespace import keo ca module vao bundle (FaceLandmarker, ImageSegmenter...)
 // lam mat tree-shaking, do len ~11 KB.
 import { FilesetResolver, HandLandmarker, PoseLandmarker } from "@mediapipe/tasks-vision";
-import { CaptureLoop, startWebcam } from "@shared/landmarks";
+import { CaptureLoop, startWebcam, stopWebcam } from "@shared/landmarks";
 import { assembleFrame, detectPresence } from "@shared/landmarks";
+import {
+  MIN_FPS_FOR_60_FRAMES,
+  RESOLUTION_PRESETS,
+  getPreset,
+  suggestLowerPreset,
+  type ResolutionPreset,
+  type WebcamInfo,
+} from "@shared/landmarks";
 import { allLabels, defaultDemoLabels } from "./labels";
 import { createLandmarkers, type Landmarkers } from "@shared/landmarks";
 import {
   incrementCount,
   loadCounts,
   loadParticipantCode,
+  loadResolutionId,
   saveCounts,
   saveParticipantCode,
+  saveResolutionId,
   type SignCounts,
 } from "./session";
 import { computeSummary } from "./summary";
 import { RECORDER_VERSION, type FrameSample, type LabelEntry, type RecordingSummary } from "./types";
-import { formatPercent, renderApp, renderCounters, renderSignOptions, type AppElements } from "./ui";
+import {
+  formatPercent,
+  renderApp,
+  renderCounters,
+  renderResolutionActual,
+  renderResolutionOptions,
+  renderSignOptions,
+  type AppElements,
+} from "./ui";
 import { buildVslmFile, downloadVslmFile } from "@shared/landmarks";
 import { playSkeleton, type SkeletonPlayerHandle } from "@shared/landmarks";
 
@@ -45,6 +63,10 @@ interface AppState {
   counts: SignCounts;
   videoWidth: number;
   videoHeight: number;
+  /** Thong tin webcam THUC TE dang dung. null = chua mo duoc. */
+  webcam: WebcamInfo | null;
+  /** Id preset do phan giai dang chon (R-12), luu o localStorage. */
+  resolutionId: string;
   frames: FrameSample[];
   recordingStartMs: number;
   recordingStartIso: string;
@@ -77,6 +99,7 @@ function main(): void {
   const el = renderApp(root);
 
   const initialParticipant = loadParticipantCode();
+  const initialPreset = getPreset(loadResolutionId());
   const state: AppState = {
     phase: "init",
     participantCode: initialParticipant,
@@ -85,6 +108,8 @@ function main(): void {
     counts: loadCounts(initialParticipant.trim()),
     videoWidth: 0,
     videoHeight: 0,
+    webcam: null,
+    resolutionId: initialPreset.id,
     frames: [],
     recordingStartMs: 0,
     recordingStartIso: "",
@@ -99,6 +124,7 @@ function main(): void {
 
   el.participantInput.value = initialParticipant;
   renderSignOptions(el.signSelect, state.labelsShown, state.selectedCode);
+  renderResolutionOptions(el.resolutionSelect, RESOLUTION_PRESETS, state.resolutionId);
   renderCounters(el.countersBody, state.counts, allLabels);
   setStatus(el, "Đang khởi tạo webcam và model MediaPipe...", false);
   updateRecordButtonEnabled(el, state);
@@ -110,15 +136,14 @@ function main(): void {
 
   void (async () => {
     try {
-      const [videoSize, loaded] = await Promise.all([
-        startWebcam(el.video),
+      const [info, loaded] = await Promise.all([
+        startWebcam(el.video, initialPreset),
         createLandmarkers(
           { FilesetResolver, HandLandmarker, PoseLandmarker },
           (msg) => setStatus(el, msg, false),
         ),
       ]);
-      state.videoWidth = videoSize.width;
-      state.videoHeight = videoSize.height;
+      applyWebcamInfo(el, state, info);
       landmarkers = loaded;
 
       captureLoop = new CaptureLoop(el.video, landmarkers.handLandmarker, landmarkers.poseLandmarker);
@@ -134,7 +159,7 @@ function main(): void {
       });
 
       state.phase = "live";
-      setStatus(el, `Sẵn sàng - độ phân giải ${videoSize.width}x${videoSize.height}.`, false);
+      setReadyStatus(el, state);
       updateRecordButtonEnabled(el, state);
     } catch (err) {
       console.error("[recorder-lite] Khoi tao that bai", err);
@@ -147,6 +172,12 @@ function main(): void {
       );
     }
   })();
+
+  // Doi do phan giai (R-13). Khong tai lai trang: dung luong cu roi mo luong moi
+  // tren cung the <video>, CaptureLoop van tro vao do nen chay tiep binh thuong.
+  el.resolutionSelect.addEventListener("change", () => {
+    void changeResolution(el, state, getPreset(el.resolutionSelect.value));
+  });
 
   el.recordBtn.addEventListener("click", () => {
     void handleRecordClick(el, state);
@@ -187,12 +218,17 @@ function setStatus(el: AppElements, message: string, isError: boolean): void {
 }
 
 function updateRecordButtonEnabled(el: AppElements, state: AppState): void {
-  const canRecord = state.phase === "live" && normalizedParticipantCode(state).length > 0;
+  const hasParticipant = normalizedParticipantCode(state).length > 0;
+  // R-15 / AC-21: ti le thuc te khong phai 16:9 -> CHAN nut Ghi.
+  const aspectOk = state.webcam?.aspectOk ?? false;
+  const canRecord = state.phase === "live" && hasParticipant && aspectOk;
   const locked = state.phase === "countdown" || state.phase === "recording";
   el.recordBtn.disabled = !canRecord;
   el.participantInput.disabled = locked;
   el.signSelect.disabled = locked;
   el.showAllLabels.disabled = locked;
+  // AC-22: khong doi muc khi dang dem nguoc / dang ghi.
+  el.resolutionSelect.disabled = locked;
 }
 
 function updateLiveStats(
@@ -211,6 +247,18 @@ function updateLiveStats(
   el.statPose.textContent = presence.pose ? "Có" : "Không";
   el.statLeft.textContent = presence.leftHand ? "Có" : "Không";
   el.statRight.textContent = presence.rightHand ? "Có" : "Không";
+
+  // R-16: fps truc tiep < 20 -> goi y (khong chan) ha xuong muc thap hon ke tiep.
+  if (fps >= MIN_FPS_FOR_60_FRAMES || fps === 0 || state.phase !== "live") return;
+  const current = getPreset(state.resolutionId);
+  const lower = suggestLowerPreset(current);
+  if (lower) {
+    setStatus(
+      el,
+      `FPS ${fps.toFixed(0)} < ${MIN_FPS_FOR_60_FRAMES} — nên thử hạ xuống ${lower.label}`,
+      false,
+    );
+  }
 }
 
 function computeRollingFps(timestamps: number[]): number {
@@ -406,6 +454,7 @@ function handleKeep(el: AppElements, state: AppState): void {
   const durationMs = state.summary?.durationMs ?? RECORDING_DURATION_MS;
   const fpsAvg = state.summary?.fpsAvg ?? 0;
 
+  // AC-23: ghi do phan giai THUC TE nhan duoc vao header .vslm, khong phai do da xin.
   const file = buildVslmFile({
     participantCode,
     signCode: label.code,
@@ -413,8 +462,8 @@ function handleKeep(el: AppElements, state: AppState): void {
     frames: state.frames,
     durationMs,
     fpsAvg,
-    videoWidth: state.videoWidth,
-    videoHeight: state.videoHeight,
+    videoWidth: state.webcam?.width ?? state.videoWidth,
+    videoHeight: state.webcam?.height ?? state.videoHeight,
     recordedAt: state.recordingStartIso,
     recorderVersion: RECORDER_VERSION,
   });
@@ -450,6 +499,65 @@ function backToLive(el: AppElements, state: AppState): void {
   state.previewChunks = [];
 
   updateRecordButtonEnabled(el, state);
+}
+
+// ---- Spec 012: chon do phan giai -----------------------------------------
+
+/**
+ * Cap nhat state + UI khi webcam tra ve thong tin do phan giai thuc te.
+ * Dung chung cho ca lan khoi tao dau tien va khi doi muc.
+ */
+function applyWebcamInfo(el: AppElements, state: AppState, info: WebcamInfo): void {
+  state.webcam = info;
+  state.videoWidth = info.width;
+  state.videoHeight = info.height;
+  renderResolutionActual(el.resolutionActual, info);
+  updateRecordButtonEnabled(el, state);
+}
+
+/**
+ * Hien trang thai "san sang" hoac canh bao ti le khong phai 16:9 (R-15).
+ * Goi sau khi webcam + model da san sang.
+ */
+function setReadyStatus(el: AppElements, state: AppState): void {
+  if (state.webcam && !state.webcam.aspectOk) {
+    setStatus(
+      el,
+      `Tỉ lệ ${state.webcam.aspectLabel} — KHÔNG phải 16:9. Chọn mức độ phân giải khác.`,
+      true,
+    );
+  } else {
+    setStatus(el, "Sẵn sàng — chọn ký hiệu rồi bấm Ghi.", false);
+  }
+}
+
+/**
+ * Doi muc do phan giai (R-13): dung luong cu, mo luong moi voi preset moi,
+ * cap nhat state + UI. Khong tai lai trang.
+ */
+async function changeResolution(
+  el: AppElements,
+  state: AppState,
+  preset: ResolutionPreset,
+): Promise<void> {
+  // AC-22: khong doi duoc khi dang dem nguoc / dang ghi.
+  if (state.phase === "countdown" || state.phase === "recording") return;
+
+  state.resolutionId = preset.id;
+  saveResolutionId(preset.id);
+  setStatus(el, `Đang chuyển sang ${preset.label}...`, false);
+
+  // AC-19: dung luong cu truoc, roi mo luong moi — khong ro camera track.
+  stopWebcam(el.video);
+  try {
+    const info = await startWebcam(el.video, preset);
+    applyWebcamInfo(el, state, info);
+    setReadyStatus(el, state);
+  } catch (err) {
+    console.error("[recorder-lite] Doi do phan giai that bai", err);
+    const message = err instanceof Error ? err.message : "Lỗi không xác định";
+    setStatus(el, `Không chuyển được: ${message}`, true);
+  }
 }
 
 main();

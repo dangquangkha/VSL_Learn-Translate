@@ -4,6 +4,7 @@
  */
 import type { LabelEntry } from "./types";
 import type { SignCounts } from "./session";
+import type { ResolutionPreset, WebcamInfo } from "@shared/landmarks";
 
 export interface AppElements {
   participantInput: HTMLInputElement;
@@ -19,6 +20,8 @@ export interface AppElements {
   statRight: HTMLElement;
   signSelect: HTMLSelectElement;
   showAllLabels: HTMLInputElement;
+  resolutionSelect: HTMLSelectElement;
+  resolutionActual: HTMLElement;
   recordBtn: HTMLButtonElement;
   reviewPanel: HTMLElement;
   reviewCanvas: HTMLCanvasElement;
@@ -67,6 +70,11 @@ const TEMPLATE = `
           <span class="stat">Pose <b id="statPose">-</b></span>
           <span class="stat">Tay trái <b id="statLeft">-</b></span>
           <span class="stat">Tay phải <b id="statRight">-</b></span>
+        </div>
+        <div class="resolution-row">
+          <label for="resolutionSelect">Độ phân giải</label>
+          <select id="resolutionSelect"></select>
+          <span id="resolutionActual" class="hint">-</span>
         </div>
       </section>
 
@@ -150,6 +158,8 @@ export function renderApp(root: HTMLElement): AppElements {
     statRight: mustGet("statRight"),
     signSelect: mustGet<HTMLSelectElement>("signSelect"),
     showAllLabels: mustGet<HTMLInputElement>("showAllLabels"),
+    resolutionSelect: mustGet<HTMLSelectElement>("resolutionSelect"),
+    resolutionActual: mustGet("resolutionActual"),
     recordBtn: mustGet<HTMLButtonElement>("recordBtn"),
     reviewPanel: mustGet("reviewPanel"),
     reviewCanvas: mustGet("reviewCanvas") as HTMLCanvasElement,
@@ -225,4 +235,43 @@ function escapeHtml(value: string): string {
 
 export function formatPercent(ratio: number): string {
   return `${Math.round(ratio * 100)}%`;
+}
+
+/**
+ * Do 3 muc do phan giai vao <select>. Nhan lay tu RESOLUTION_PRESETS chu khong
+ * viet tay o day - de khong bao gio lech voi danh sach that (va de khong ai
+ * vo tinh them 640x480 vao rieng cho nay).
+ */
+export function renderResolutionOptions(
+  select: HTMLSelectElement,
+  presets: readonly ResolutionPreset[],
+  selectedId: string,
+): void {
+  select.innerHTML = "";
+  for (const preset of presets) {
+    const option = document.createElement("option");
+    option.value = preset.id;
+    option.textContent = preset.label;
+    select.appendChild(option);
+  }
+  select.value = presets.some((p) => p.id === selectedId) ? selectedId : presets[0]!.id;
+}
+
+/**
+ * Hien do phan giai THUC TE nhan duoc. Ti le khong phai 16:9 thi to do - do la
+ * truong hop chan khong cho quay (xem R-15).
+ */
+export function renderResolutionActual(target: HTMLElement, info: WebcamInfo | null): void {
+  if (!info) {
+    target.textContent = "-";
+    target.classList.remove("resolution-bad");
+    return;
+  }
+  const daXin = `${info.requested.width}×${info.requested.height}`;
+  const nhanDuoc = `${info.width}×${info.height}`;
+  const khac = daXin !== nhanDuoc ? ` (đã xin ${daXin})` : "";
+  target.textContent = info.aspectOk
+    ? `thực tế ${nhanDuoc}${khac}`
+    : `thực tế ${nhanDuoc} — tỉ lệ ${info.aspectLabel}, KHÔNG phải 16:9`;
+  target.classList.toggle("resolution-bad", !info.aspectOk);
 }

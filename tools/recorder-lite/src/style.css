@@ -385,3 +385,24 @@ body {
   color: #6e7681;
   font-size: 11px;
 }
+
+/* ---- Chon do phan giai (spec 012) --------------------------------------- */
+.resolution-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.resolution-row label {
+  font-size: 13px;
+  color: #9aa4b2;
+}
+.resolution-row select {
+  flex: 0 1 auto;
+}
+/* Ti le khong phai 16:9 -> to do, va nut Ghi bi chan (R-15). */
+.resolution-bad {
+  color: #ff6b6b;
+  font-weight: 600;
+}
