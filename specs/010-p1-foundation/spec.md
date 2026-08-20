@@ -156,38 +156,58 @@ ví dụ `P01__xin_chao__20260819T213000123Z.vslm`
 
 Công cụ quay tạm, **độc lập hoàn toàn** với `frontend/`. Mục đích duy nhất: để 5 thành viên nhóm thu được 720 clip trong sáng mai. Không phải Recorder thật (đó là `P3-2` của An, có consent, metadata, kiểm tra thiết bị đầy đủ).
 
-### 12 ký hiệu demo — ĐÃ CHỐT
+### 10 ký hiệu demo — ĐÃ CHỐT (tra QIPEDC thật, 2026-08-20)
 
-Nguyên tắc chọn: tránh các cặp dễ nhầm, trải đều về **vị trí thực hiện** (mặt / ngực / không gian trung tính) và **kiểu chuyển động**. Với 12 lớp mà chỉ ~60 mẫu/lớp, hai ký hiệu giống nhau là đủ để kéo tụt độ chính xác trên sân khấu.
+Toàn bộ 10 từ dưới đây **đã được tra tay trên `qipedc.moet.gov.vn/dictionary`** và có
+video mẫu thật. Trong `shared/labels.json` chúng mang `dictionary_source: "QIPEDC"`;
+40 nhãn còn lại mang `"UNVERIFIED"`.
 
-| id | code | Lý do chọn |
+| id | code | Hiển thị |
 |---|---|---|
-| 1 | `xin_chao` | Chào hỏi, thực hiện gần đầu |
-| 2 | `cam_on` | Xã giao, khác vị trí với `xin_chao` |
-| 5 | `ban` | Chỉ ra ngoài |
-| 6 | `toi` | Chỉ vào mình — tương phản rõ với `ban` |
-| 10 | `khong` | Phủ định |
-| 11 | `co` | Khẳng định — tương phản rõ với `khong` |
-| 12 | `giup_do` | Hai tay, chuyển động nâng |
-| 15 | `hoc` | Trừu tượng |
-| 21 | `gia_dinh` | Hai tay, chuyển động vòng |
-| 30 | `nha` | Hai tay tạo hình mái — khác biệt nhất trong tập |
-| 34 | `an` | Tay đưa lên miệng |
-| 38 | `di` | Chuyển động ngang |
+| 1 | `chao` | Chào |
+| 3 | `xin_loi` | Xin lỗi |
+| 4 | `tam_biet` | Tạm biệt |
+| 22 | `bo` | Bố |
+| 23 | `me` | Mẹ (má) |
+| 42 | `them` | Thèm |
+| 43 | `mu_chu` | Mù chữ |
+| 44 | `buc_minh` | Bực mình |
+| 45 | `nuoc_viet_nam` | Nước Việt Nam |
+| 46 | `nguoi_nuoc_ngoai` | Người nước ngoài |
 
-Cộng lớp `idle` (id 0) → **13 lớp** cho model demo.
+Cộng lớp `idle` (id 0) → **11 lớp có dữ liệu**. Interface ONNX vẫn giữ `logits [1, 51]`
+— 40 lớp còn lại không có dữ liệu train, nhưng giữ nguyên số lớp để thêm từ về sau
+không phải đổi contract với P2 và P4.
 
-**Đã loại có chủ đích:**
+**Mục tiêu dữ liệu:** 5 người × 10 ký hiệu × 12 lần = **600 clip** (60 clip/lớp) +
+~15 clip `idle`/người. Con số 12 lần/người suy ngược từ mục tiêu 60 mẫu mỗi lớp.
 
-| Loại bỏ | Vì |
-|---|---|
-| `tam_biet` | Dễ nhầm `xin_chao` — cả hai thường là động tác vẫy tay |
-| `xin_loi` | Dễ nhầm `cam_on` — cùng xuất phát từ vùng cằm/miệng |
-| `uong` | Dễ nhầm `an` — cùng vị trí ở miệng |
-| `anh` `chi` `em` `bo` `me` `ong` `ba` | Nhóm người thân thường chung hình tay, chỉ khác vị trí |
-| `hom_nay` `ngay_mai` `hom_qua` | **Rủi ro nhầm cao nhất** — thường cùng gốc, chỉ khác hướng chuyển động |
+#### Vì sao bỏ danh sách 12 từ trước đó
 
-> **Cần xác minh bằng mắt:** danh sách trên dựa trên đặc điểm chung của ngôn ngữ ký hiệu, **chưa đối chiếu video QIPEDC thật**. Tra thử 12 từ này trên `qipedc.moet.gov.vn/dictionary` (~5 phút) để xác nhận chúng thật sự khác nhau rõ; thấy cặp nào giống thì đổi sang từ khác trong `shared/labels.json`. Việc này đồng thời hoàn thành mốc kiểm chứng tuần 1 của SRS.
+Danh sách cũ (`xin_chao`, `cam_on`, `ban`, `toi`, `khong`, `co`, `giup_do`, `hoc`,
+`gia_dinh`, `nha`, `an`, `di`) được chọn bằng **suy đoán** về đặc điểm ngôn ngữ ký hiệu,
+không phải từ nguồn thật. Khi tra thử mới phát hiện:
+
+- **`xin_chao` không tồn tại** trong từ điển — chỉ có `chào`.
+- **`cam_on` không ra kết quả.**
+- `shared/labels.json` gắn `dictionary_source: "QIPEDC"` cho **cả 51 nhãn, kể cả `idle`**,
+  và `display_name_vi` viết không dấu ("Xin Chao") → trường này chưa từng được xác minh,
+  là giá trị điền sẵn khi file được sinh ra.
+
+Hậu quả nếu cứ quay theo danh sách cũ: không có video mẫu thì 5 người sẽ làm 5 kiểu
+khác nhau cho cùng một nhãn. Model học một lớp có nhiều biến thể mâu thuẫn → accuracy
+thấp, và **không ai truy được nguyên nhân** vì không test nào bắt được nhãn bẩn.
+`AGENTS.md` §1.1 cũng cấm dạy/đánh giá ký hiệu không có nguồn từ điển xác minh.
+
+#### Quy tắc thay nhãn về sau
+
+40 slot `UNVERIFIED` là **kho dự trữ**: tra thêm được từ nào thì ghi đè lên một slot,
+giữ nguyên tổng 51. Nhưng **id đã có clip quay thì đóng băng vĩnh viễn** — header `.vslm`
+lưu `label_index`, nên đổi nghĩa của một id sau khi đã quay sẽ làm toàn bộ clip đó mang
+nhãn sai một cách âm thầm. Chi tiết ghi trong `_luu_y` ở đầu `shared/labels.json`.
+
+Đổi `labels.json` xong phải chạy `py scripts/generate_labels.py` **và**
+`py -m ai_pipeline.export.export_onnx`; `test_label_hash_sync.py` canh việc này.
 
 ### Ghi nhận: `shared/labels.json` không khớp SRS Phụ lục A
 
