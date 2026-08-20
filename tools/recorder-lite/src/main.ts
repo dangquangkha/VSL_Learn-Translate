@@ -261,7 +261,9 @@ function renderReview(el: AppElements, summary: RecordingSummary): void {
   }
   if (summary.tooManyMissingHands) {
     warnings.push(
-      `Cảnh báo: ${formatPercent(summary.bothHandsMissingRatio)} khung hình mất cả hai tay (>20%) - kiểm tra lại vị trí/ánh sáng.`,
+      `Cảnh báo: đoạn liên tục thấy tay chỉ dài ${summary.longestHandRunSec.toFixed(1)}s ` +
+        `(cần ≥ 1s) - có thể tay bị mất dấu giữa động tác. Mất tay ở đầu/cuối clip ` +
+        `là bình thường, không cần quay lại.`,
     );
   }
   el.reviewWarnings.innerHTML = warnings.map((w) => `<div class="warning">${w}</div>`).join("");
