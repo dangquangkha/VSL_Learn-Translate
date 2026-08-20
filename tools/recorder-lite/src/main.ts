@@ -49,6 +49,13 @@ interface AppState {
   recordingStartIso: string;
   summary: RecordingSummary | null;
   fpsTimestamps: number[];
+  /** Ghi song song mot doan video CHI DE XEM LAI o man Review — doi chieu voi
+   *  video mau QIPEDC. Khong ghi vao file .vslm, khong roi khoi may. */
+  previewRecorder: MediaRecorder | null;
+  previewChunks: Blob[];
+  /** objectURL cua doan vua quay; phai revoke truoc khi tao cai moi, neu khong
+   *  quay 135 clip mot phien se giu lai 135 blob trong bo nho. */
+  previewUrl: string | null;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -78,6 +85,9 @@ function main(): void {
     recordingStartIso: "",
     summary: null,
     fpsTimestamps: [],
+    previewRecorder: null,
+    previewChunks: [],
+    previewUrl: null,
   };
 
   el.participantInput.value = initialParticipant;
@@ -223,6 +233,99 @@ async function handleRecordClick(el: AppElements, state: AppState): Promise<void
   startRecording(el, state);
 }
 
+/**
+ * Chon mimeType video ma trinh duyet ho tro. Chrome uu tien VP9, nhung mot so
+ * may/driver chi co VP8 — thu lan luot roi lui ve mac dinh cua trinh duyet.
+ */
+function pickPreviewMimeType(): string | undefined {
+  const ungVien = [
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ];
+  for (const mime of ungVien) {
+    if (MediaRecorder.isTypeSupported(mime)) return mime;
+  }
+  return undefined;
+}
+
+/**
+ * Bat dau ghi doan xem lai. Chay SONG SONG voi vong lap MediaPipe tren cung
+ * stream webcam — khong doc them khung hinh nao, chi encode.
+ *
+ * That bai o day KHONG duoc lam hong lan ghi: landmark moi la thu that su can.
+ * Doan video chi de nguoi quay doi chieu voi video mau, nen moi loi deu nuot va
+ * chi ghi console.
+ */
+function startPreviewRecording(el: AppElements, state: AppState): void {
+  state.previewChunks = [];
+  state.previewRecorder = null;
+
+  const stream = el.video.srcObject as MediaStream | null;
+  if (!stream || typeof MediaRecorder === "undefined") return;
+
+  try {
+    const mimeType = pickPreviewMimeType();
+    const recorder = new MediaRecorder(stream, {
+      ...(mimeType ? { mimeType } : {}),
+      // Du de nhin ro hinh tay, khong can chat luong cao vi khong luu lai.
+      videoBitsPerSecond: 2_000_000,
+    });
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) state.previewChunks.push(event.data);
+    };
+    recorder.start();
+    state.previewRecorder = recorder;
+  } catch (err) {
+    console.warn("[recorder-lite] Khong ghi duoc doan xem lai:", err);
+    state.previewRecorder = null;
+  }
+}
+
+/** Dung ghi va gan doan vua quay vao the <video> o man Review. */
+function finishPreviewRecording(el: AppElements, state: AppState): void {
+  const recorder = state.previewRecorder;
+  state.previewRecorder = null;
+
+  if (!recorder || recorder.state === "inactive") {
+    el.reviewVideo.classList.add("hidden");
+    return;
+  }
+
+  recorder.onstop = () => {
+    if (state.previewChunks.length === 0) {
+      el.reviewVideo.classList.add("hidden");
+      return;
+    }
+    const blob = new Blob(state.previewChunks, {
+      type: state.previewChunks[0]?.type || "video/webm",
+    });
+    revokePreviewUrl(state);
+    state.previewUrl = URL.createObjectURL(blob);
+    el.reviewVideo.src = state.previewUrl;
+    el.reviewVideo.classList.remove("hidden");
+    void el.reviewVideo.play().catch(() => {
+      /* autoplay bi chan thi nguoi dung tu bam play */
+    });
+  };
+
+  try {
+    recorder.stop();
+  } catch (err) {
+    console.warn("[recorder-lite] Loi khi dung ghi doan xem lai:", err);
+    el.reviewVideo.classList.add("hidden");
+  }
+}
+
+/** Giai phong objectURL cu — quay 135 clip mot phien ma khong revoke la giu lai
+ *  135 blob video trong bo nho. */
+function revokePreviewUrl(state: AppState): void {
+  if (state.previewUrl) {
+    URL.revokeObjectURL(state.previewUrl);
+    state.previewUrl = null;
+  }
+}
+
 function startRecording(el: AppElements, state: AppState): void {
   state.phase = "recording";
   state.frames = [];
@@ -231,12 +334,16 @@ function startRecording(el: AppElements, state: AppState): void {
   el.recordingBadge.classList.remove("hidden");
   el.recordingElapsed.textContent = "0.0s";
 
+  startPreviewRecording(el, state);
+
   setTimeout(() => stopRecording(el, state), RECORDING_DURATION_MS);
 }
 
 function stopRecording(el: AppElements, state: AppState): void {
   const durationMs = performance.now() - state.recordingStartMs;
   el.recordingBadge.classList.add("hidden");
+
+  finishPreviewRecording(el, state);
 
   const summary = computeSummary(state.frames, durationMs);
   state.summary = summary;
@@ -316,6 +423,14 @@ function backToLive(el: AppElements, state: AppState): void {
   state.summary = null;
   state.phase = "live";
   el.reviewPanel.classList.add("hidden");
+
+  // Ngung phat va tra lai bo nho truoc khi sang lan ghi tiep theo.
+  el.reviewVideo.pause();
+  el.reviewVideo.removeAttribute("src");
+  el.reviewVideo.load();
+  revokePreviewUrl(state);
+  state.previewChunks = [];
+
   updateRecordButtonEnabled(el, state);
 }
 
