@@ -4,10 +4,19 @@
  * Xem specs/010-p1-foundation/spec.md muc 4 (R-01..R-10) va plan.md.
  */
 import "./style.css";
-import { CaptureLoop, startWebcam } from "./capture";
-import { assembleFrame, detectPresence } from "./frameAssembler";
+// Module dung chung @shared/landmarks co y KHONG import runtime tu
+// @mediapipe/tasks-vision (neu import thi `vite build` hong - xem comment dau
+// file shared/landmarks/mediapipe.ts). App nao dung thi app do import roi
+// truyen vao createLandmarkers().
+//
+// Dung named import roi tu gom thanh object, KHONG dung `import * as`:
+// namespace import keo ca module vao bundle (FaceLandmarker, ImageSegmenter...)
+// lam mat tree-shaking, do len ~11 KB.
+import { FilesetResolver, HandLandmarker, PoseLandmarker } from "@mediapipe/tasks-vision";
+import { CaptureLoop, startWebcam } from "@shared/landmarks";
+import { assembleFrame, detectPresence } from "@shared/landmarks";
 import { allLabels, defaultDemoLabels } from "./labels";
-import { createLandmarkers, type Landmarkers } from "./mediapipe";
+import { createLandmarkers, type Landmarkers } from "@shared/landmarks";
 import {
   incrementCount,
   loadCounts,
@@ -17,9 +26,10 @@ import {
   type SignCounts,
 } from "./session";
 import { computeSummary } from "./summary";
-import type { FrameSample, LabelEntry, RecordingSummary } from "./types";
+import { RECORDER_VERSION, type FrameSample, type LabelEntry, type RecordingSummary } from "./types";
 import { formatPercent, renderApp, renderCounters, renderSignOptions, type AppElements } from "./ui";
-import { buildVslmFile, downloadVslmFile } from "./vslmWriter";
+import { buildVslmFile, downloadVslmFile } from "@shared/landmarks";
+import { playSkeleton, type SkeletonPlayerHandle } from "@shared/landmarks";
 
 const RECORDING_DURATION_MS = 3000;
 const COUNTDOWN_STEPS = [3, 2, 1];
@@ -40,6 +50,17 @@ interface AppState {
   recordingStartIso: string;
   summary: RecordingSummary | null;
   fpsTimestamps: number[];
+  /** Handle cua khung xuong dang phat lai o man Review. Phai stop() truoc khi
+   *  phat clip khac, neu khong hai vong requestAnimationFrame se chay chong len. */
+  skeletonPlayer: SkeletonPlayerHandle | null;
+  /** Ghi video xem lai (tuy chon — lam tut fps tren may yeu). */
+  previewRecorder: MediaRecorder | null;
+  previewChunks: Blob[];
+  previewUrl: string | null;
+  /** fps do NGAY TRUOC khi bam ghi. So sanh voi fps trong luc ghi thi tach duoc
+   *  chi phi cua MediaRecorder ra khoi tai may vao thoi diem do — hai lan quay
+   *  cach nhau vai phut co the co tai may rat khac nhau. */
+  fpsBeforeRecording: number;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -69,6 +90,11 @@ function main(): void {
     recordingStartIso: "",
     summary: null,
     fpsTimestamps: [],
+    skeletonPlayer: null,
+    previewRecorder: null,
+    previewChunks: [],
+    previewUrl: null,
+    fpsBeforeRecording: 0,
   };
 
   el.participantInput.value = initialParticipant;
@@ -86,7 +112,10 @@ function main(): void {
     try {
       const [videoSize, loaded] = await Promise.all([
         startWebcam(el.video),
-        createLandmarkers((msg) => setStatus(el, msg, false)),
+        createLandmarkers(
+          { FilesetResolver, HandLandmarker, PoseLandmarker },
+          (msg) => setStatus(el, msg, false),
+        ),
       ]);
       state.videoWidth = videoSize.width;
       state.videoHeight = videoSize.height;
@@ -211,13 +240,106 @@ async function handleRecordClick(el: AppElements, state: AppState): Promise<void
   startRecording(el, state);
 }
 
+/**
+ * Chon mimeType cho doan video xem lai. UU TIEN VP8, KHONG phai VP9: VP9 ton
+ * CPU hon dang ke, ma doan nay chi de nguoi quay liec qua roi bo.
+ */
+function pickPreviewMimeType(): string | undefined {
+  for (const mime of ["video/webm;codecs=vp8", "video/webm", "video/webm;codecs=vp9"]) {
+    if (MediaRecorder.isTypeSupported(mime)) return mime;
+  }
+  return undefined;
+}
+
+/**
+ * Bat ghi doan video xem lai — CHI khi nguoi quay bat cong tac.
+ *
+ * Moi loi deu bi nuot va chi ghi console: landmark moi la du lieu that, doan
+ * video chi de doi chieu voi video mau. Khong duoc de tinh nang phu lam hong
+ * lan ghi.
+ */
+function startPreviewRecording(el: AppElements, state: AppState): void {
+  state.previewChunks = [];
+  state.previewRecorder = null;
+
+  if (!el.recordVideoToggle.checked) return;
+
+  const stream = el.video.srcObject as MediaStream | null;
+  if (!stream || typeof MediaRecorder === "undefined") return;
+
+  try {
+    const mimeType = pickPreviewMimeType();
+    const recorder = new MediaRecorder(stream, {
+      ...(mimeType ? { mimeType } : {}),
+      videoBitsPerSecond: 800_000,
+    });
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) state.previewChunks.push(event.data);
+    };
+    recorder.start();
+    state.previewRecorder = recorder;
+  } catch (err) {
+    console.warn("[recorder-lite] Khong ghi duoc doan xem lai:", err);
+    state.previewRecorder = null;
+  }
+}
+
+/** Dung ghi va gan doan vua quay vao the <video> o man Review. */
+function finishPreviewRecording(el: AppElements, state: AppState): void {
+  const recorder = state.previewRecorder;
+  state.previewRecorder = null;
+
+  if (!recorder || recorder.state === "inactive") {
+    el.reviewVideoCol.classList.add("hidden");
+    return;
+  }
+
+  recorder.onstop = () => {
+    if (state.previewChunks.length === 0) {
+      el.reviewVideoCol.classList.add("hidden");
+      return;
+    }
+    const blob = new Blob(state.previewChunks, {
+      type: state.previewChunks[0]?.type || "video/webm",
+    });
+    revokePreviewUrl(state);
+    state.previewUrl = URL.createObjectURL(blob);
+    el.reviewVideo.src = state.previewUrl;
+    el.reviewVideoCol.classList.remove("hidden");
+    void el.reviewVideo.play().catch(() => {
+      /* autoplay bi chan thi nguoi dung tu bam play */
+    });
+  };
+
+  try {
+    recorder.stop();
+  } catch (err) {
+    console.warn("[recorder-lite] Loi khi dung ghi doan xem lai:", err);
+    el.reviewVideoCol.classList.add("hidden");
+  }
+}
+
+/** Giai phong objectURL cu — quay 135 clip mot phien ma quen revoke la giu lai
+ *  135 blob video trong bo nho. */
+function revokePreviewUrl(state: AppState): void {
+  if (state.previewUrl) {
+    URL.revokeObjectURL(state.previewUrl);
+    state.previewUrl = null;
+  }
+}
+
 function startRecording(el: AppElements, state: AppState): void {
   state.phase = "recording";
   state.frames = [];
+  // Chup fps NGAY TRUOC khi bat dau ghi, de tach chi phi cua MediaRecorder ra
+  // khoi tai may vao thoi diem do.
+  state.fpsBeforeRecording = computeRollingFps(state.fpsTimestamps);
   state.recordingStartMs = performance.now();
   state.recordingStartIso = new Date().toISOString();
   el.recordingBadge.classList.remove("hidden");
   el.recordingElapsed.textContent = "0.0s";
+
+  startPreviewRecording(el, state);
 
   setTimeout(() => stopRecording(el, state), RECORDING_DURATION_MS);
 }
@@ -226,17 +348,30 @@ function stopRecording(el: AppElements, state: AppState): void {
   const durationMs = performance.now() - state.recordingStartMs;
   el.recordingBadge.classList.add("hidden");
 
-  const summary = computeSummary(state.frames, durationMs);
+  finishPreviewRecording(el, state);
+
+
+  const summary = computeSummary(state.frames, durationMs, state.selectedCode);
   state.summary = summary;
   state.phase = "review";
   updateRecordButtonEnabled(el, state);
 
-  renderReview(el, summary);
+  renderReview(el, state, summary);
 }
 
-function renderReview(el: AppElements, summary: RecordingSummary): void {
+function renderReview(el: AppElements, state: AppState, summary: RecordingSummary): void {
+  // Phat lai khung xuong tu chinh landmark vua ghi — dung thu model nhin thay.
+  state.skeletonPlayer?.stop();
+  el.reviewCanvas.width = 320;
+  el.reviewCanvas.height = Math.round(
+    320 * (state.videoHeight > 0 ? state.videoHeight / state.videoWidth : 9 / 16),
+  );
+  state.skeletonPlayer = playSkeleton({ canvas: el.reviewCanvas, frames: state.frames });
+
   el.reviewFrameCount.textContent = String(summary.frameCount);
   el.reviewFpsAvg.textContent = summary.fpsAvg.toFixed(1);
+  el.reviewFpsBefore.textContent =
+    state.fpsBeforeRecording > 0 ? state.fpsBeforeRecording.toFixed(1) : "-";
   el.reviewLeftRatio.textContent = formatPercent(summary.leftHandRatio);
   el.reviewRightRatio.textContent = formatPercent(summary.rightHandRatio);
   el.reviewBothMissingRatio.textContent = formatPercent(summary.bothHandsMissingRatio);
@@ -249,7 +384,9 @@ function renderReview(el: AppElements, summary: RecordingSummary): void {
   }
   if (summary.tooManyMissingHands) {
     warnings.push(
-      `Cảnh báo: ${formatPercent(summary.bothHandsMissingRatio)} khung hình mất cả hai tay (>20%) - kiểm tra lại vị trí/ánh sáng.`,
+      `Cảnh báo: đoạn liên tục thấy tay chỉ dài ${summary.longestHandRunSec.toFixed(1)}s ` +
+        `(cần ≥ 1s) - có thể tay bị mất dấu giữa động tác. Mất tay ở đầu/cuối clip ` +
+        `là bình thường, không cần quay lại.`,
     );
   }
   el.reviewWarnings.innerHTML = warnings.map((w) => `<div class="warning">${w}</div>`).join("");
@@ -279,6 +416,7 @@ function handleKeep(el: AppElements, state: AppState): void {
     videoWidth: state.videoWidth,
     videoHeight: state.videoHeight,
     recordedAt: state.recordingStartIso,
+    recorderVersion: RECORDER_VERSION,
   });
 
   downloadVslmFile(file);
@@ -301,6 +439,16 @@ function backToLive(el: AppElements, state: AppState): void {
   state.summary = null;
   state.phase = "live";
   el.reviewPanel.classList.add("hidden");
+
+  state.skeletonPlayer?.stop();
+  state.skeletonPlayer = null;
+
+  el.reviewVideo.pause();
+  el.reviewVideo.removeAttribute("src");
+  el.reviewVideo.load();
+  revokePreviewUrl(state);
+  state.previewChunks = [];
+
   updateRecordButtonEnabled(el, state);
 }
 

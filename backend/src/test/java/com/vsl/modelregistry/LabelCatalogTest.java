@@ -16,7 +16,7 @@ class LabelCatalogTest {
         assertThat(catalog.labels().getFirst().id()).isZero();
         assertThat(catalog.labels().getFirst().code()).isEqualTo("idle");
         assertThat(catalog.canonicalHash())
-                .isEqualTo("927342372dcfb1c70d8afb2867324932d3171f30bb6a0cdc24aaea4971a2bf2f");
+                .isEqualTo("22c0ff1688cddde59683322e549c51a0b470135f084c2142bc1940a4919f0767");
     }
 
     @Test

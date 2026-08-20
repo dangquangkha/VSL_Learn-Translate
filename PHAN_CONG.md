@@ -14,7 +14,7 @@
 
 | Phần | Trạng thái | Ghi chú |
 |---|---|---|
-| `shared/labels.json` | ✅ Xong | 51 nhãn (50 ký hiệu + `idle`), chuẩn QIPEDC |
+| `shared/labels.json` | ✅ Xong | 51 nhãn (50 ký hiệu + `idle`). **Chỉ 10 nhãn demo đã tra QIPEDC thật** (`dictionary_source: QIPEDC`); 40 nhãn còn lại là `UNVERIFIED` — kho dự trữ, được phép thay. Xem `_luu_y` đầu file |
 | Backend `auth` | ✅ Xong | JWT, entity, Flyway migration |
 | Backend `collection` | 🟡 Một phần | Mới có cấp presigned URL lên R2 |
 | `ai_pipeline` — tiền xử lý | ✅ Xong | 7 bước chuẩn hoá landmark, đúng nguyên tắc chống train/serve skew |
@@ -30,7 +30,7 @@
 
 **Giữ lại:**
 
-- 12 ký hiệu (chọn loại khác nhau rõ về hình tay và chuyển động) + lớp `idle`
+- 10 ký hiệu đã tra QIPEDC thật (xem `specs/010-p1-foundation/spec.md` §4) + lớp `idle`
 - Chế độ Dịch chạy thật (buffer, sliding window, decoder)
 - Recorder đủ dùng để cả nhóm quay
 - Chế độ Học ở mức cơ bản (danh sách từ, luyện tập, chấm điểm)
@@ -114,7 +114,7 @@ Toàn bộ chuỗi này nằm ở **P1 + hai buổi quay của cả nhóm**.
 - [ ] Export ONNX giả: trọng số ngẫu nhiên nhưng **đúng shape tensor cuối** — dùng `export_onnx.py` có sẵn → **giao P2, P4**
 - [ ] Chốt định dạng file landmark (header JSON + float32) → **giao P3**
 - [ ] Tách `useLandmarks` từ recorder-lite thành module tái dùng → **giao P2, P3, P4**
-- [ ] Dataset builder: đọc clip landmark → tensor dataset, chia tập theo người
+- [ ] Dataset builder: đọc clip landmark → tensor dataset, chia tập theo người. ⚠️ **Bắt buộc sinh mẫu bằng cách TRƯỢT CỬA SỔ 2 GIÂY trên clip 3 giây**, đúng như ring buffer lúc chạy thật — ném cả clip 3 giây vào model là tạo train/serve skew ở kênh toạ độ (đã đo: lệch 0.64 cho cùng một động tác). Xem `ai_pipeline/tests/test_dummy_onnx_v2.py::test_van_toc_doc_lap_voi_do_dai_cua_so`
 - [ ] Viết `train.py` + training loop
 - [ ] Train lần 1, đánh giá, xác định ký hiệu yếu → **báo P3 để quay bù**
 - [ ] Train lần 2 với dữ liệu đầy đủ
@@ -137,14 +137,14 @@ Toàn bộ chuỗi này nằm ở **P1 + hai buổi quay của cả nhóm**.
 - [ ] BE `collection` hoàn thiện: participants, consents, recording_sessions, clips metadata, điều phối phân bổ ký hiệu
 - [ ] Recorder thật trên shell: consent → khai metadata ẩn danh → phiên có dẫn dắt → đếm ngược → ghi 3 giây
 - [ ] Kiểm tra thiết bị (FR-C03): đủ sáng, thấy thân trên, khoảng cách hợp lý, fps ≥ 15, khung hình đứng yên
-- [ ] Tự loại clip hỏng (FR-C04): mất tay > 20% khung, < 20 khung hợp lệ, không thấy pose > 30% khung
+- [ ] Tự loại clip hỏng: **đoạn liên tục dài nhất có tay < 1 giây**, < 20 khung hợp lệ, không thấy pose > 30% khung — ⚠️ **KHÔNG dùng ngưỡng "mất tay > 20% khung" của SRS FR-C04**, xem `frontend/AGENTS.md` §3 để biết vì sao
 - [ ] Upload lên R2 qua presigned URL + hàng đợi nền + tự hạ chất lượng
 - [ ] **Điều phối đợt quay 2** — ưu tiên ký hiệu P1 báo yếu
 - [ ] Layout Android (FR-C07) — chỉ làm nếu còn thời gian
 
 ### P4 (Hùng) — Chế độ Học
 
-- [ ] BE `vocabulary`: CRUD ký hiệu, seed 12 ký hiệu từ `shared/labels.json`
+- [ ] BE `vocabulary`: CRUD ký hiệu, seed 10 ký hiệu demo từ `shared/labels.json` (nhãn có `dictionary_source: QIPEDC`)
 - [ ] BE `learning`: bảng `practice_attempts`, `user_sign_progress`, logic Leitner
 - [ ] FE danh sách từ vựng + màn chi tiết ký hiệu
 - [ ] FE luyện tập: webcam + chấm điểm — **dùng ONNX giả của P1**
@@ -234,11 +234,11 @@ Feature mới bắt đầu từ **`006-`** trở đi. Thống nhất trước kh
 
 | Mốc | Điều kiện kích hoạt | Nội dung |
 |---|---|---|
-| **MỐC 1 — Quay đợt 1** | P1 xong `recorder-lite` | Cả 5 người: 12 ký hiệu × 12 lần + 15 clip `idle`/người (ngồi yên, gãi đầu, uống nước, chỉnh tóc) |
+| **MỐC 1 — Quay đợt 1** | P1 xong `recorder-lite` | Cả 5 người: 10 ký hiệu × 12 lần + 15 clip `idle`/người (ngồi yên, gãi đầu, uống nước, chỉnh tóc) |
 | **MỐC 2 — Quay đợt 2** | P1 báo ký hiệu yếu sau train lần 1 | Cả 5 người, chỉ quay bù ký hiệu yếu |
 | **MỐC 3 — Giao model thật** | Golden test PASS | P1 giao `.onnx` cho P2 và P4 cùng lúc |
 
-**Mục tiêu dữ liệu:** 5 người × 12 ký hiệu × 12 lần = **720 clip** (60 clip/lớp) + ~75 clip `idle`.
+**Mục tiêu dữ liệu:** 5 người × 10 ký hiệu × 12 lần = **600 clip** (60 clip/lớp) + ~75 clip `idle`.
 
 > Không được bỏ qua clip `idle`. Thiếu `idle`, chế độ Dịch sẽ phun từ liên tục ngay cả khi người dùng ngồi im — demo sẽ trông rất tệ.
 

@@ -126,8 +126,8 @@
 <script>
 /* === BEGIN STATUS DATA ====================================================== */
 const STATUS = {
-  updated:   "2026-08-20 — P5-1, P5-2 xong; Maven clean verify 31/31 + PostgreSQL migration IT 1/1",
-  updatedBy: "P5 (Đức)",
+  updated:   "2026-08-20 — P3-1, P5-1, P5-2 xong; BE collection + Maven clean verify 31/31 + PostgreSQL migration IT 1/1; cả 4 cổng ① đã MỞ",
+  updatedBy: "P3 (An) + P5 (Đức)",
 
   /* Mốc đồng bộ cả nhóm — sửa tay: "todo" | "done" */
   milestones: {
@@ -138,10 +138,10 @@ const STATUS = {
 
   people: [
     { id:"P1", name:"Tài", role:"AI pipeline", tasks:[
-      { id:"P1-1",  ph:1, lb:"recorder-lite",                    status:"doing", gate:"recorderLite" },
-      { id:"P1-2",  ph:1, lb:"Export ONNX giả (đúng shape)",     status:"todo", gate:"onnxDummy" },
+      { id:"P1-1",  ph:1, lb:"recorder-lite",                    status:"done", gate:"recorderLite" },
+      { id:"P1-2",  ph:1, lb:"Export ONNX giả (đúng shape)",     status:"done", gate:"onnxDummy" },
       { id:"P1-3",  ph:1, lb:"Chốt định dạng file landmark",     status:"done" },
-      { id:"P1-4",  ph:1, lb:"Module useLandmarks",              status:"todo", gate:"useLandmarks" },
+      { id:"P1-4",  ph:1, lb:"Module useLandmarks",              status:"done", gate:"useLandmarks" },
       { id:"P1-5",  ph:2, lb:"Dataset builder",                  status:"todo", needs:["m1"] },
       { id:"P1-6",  ph:2, lb:"train.py + training loop",         status:"todo" },
       { id:"P1-7",  ph:3, lb:"Train lần 1 + đánh giá",           status:"todo", needs:["m1"] },
@@ -152,17 +152,17 @@ const STATUS = {
     ]},
 
     { id:"P2", name:"Khải", role:"Shell + chế độ Dịch", tasks:[
-      { id:"P2-1",  ph:1, lb:"FE shell (Vite+React+TS, router, API client, JWT)", status:"todo", gate:"shell" },
-      { id:"P2-2",  ph:2, lb:"Web Worker + nạp ONNX",            status:"todo", needs:["onnxDummy"] },
-      { id:"P2-3",  ph:2, lb:"Ring buffer 2s + sliding window",  status:"todo", needs:["useLandmarks"] },
-      { id:"P2-4",  ph:3, lb:"Decoder (0.7 / 3 cửa sổ / khoá 1s)", status:"todo" },
-      { id:"P2-5",  ph:3, lb:"UI chế độ Dịch",                   status:"todo" },
+      { id:"P2-1",  ph:1, lb:"FE shell (Vite+React+TS, router, API client, JWT)", status:"done", gate:"shell" },
+      { id:"P2-2",  ph:2, lb:"Web Worker + nạp ONNX",            status:"done", needs:["onnxDummy"] },
+      { id:"P2-3",  ph:2, lb:"Ring buffer 2s + sliding window",  status:"done", needs:["useLandmarks"] },
+      { id:"P2-4",  ph:3, lb:"Decoder (0.7 / 3 cửa sổ / khoá 1s)", status:"done" },
+      { id:"P2-5",  ph:3, lb:"UI chế độ Dịch",                   status:"done" },
       { id:"P2-6",  ph:5, lb:"Thay model thật + đo độ trễ",      status:"todo", needs:["m3"] },
       { id:"P2-7",  ph:5, lb:"Service worker cache (offline)",   status:"todo" }
     ]},
 
     { id:"P3", name:"An", role:"Recorder + thu thập", tasks:[
-      { id:"P3-1",  ph:1, lb:"BE collection (participants, consents, sessions, clips)", status:"todo" },
+      { id:"P3-1",  ph:1, lb:"BE collection (participants, consents, sessions, clips)", status:"done" },
       { id:"P3-2",  ph:2, lb:"Recorder thật trên shell",         status:"todo", needs:["shell","useLandmarks"] },
       { id:"P3-3",  ph:3, lb:"Kiểm tra thiết bị + tự loại clip", status:"todo" },
       { id:"P3-4",  ph:3, lb:"Upload R2 + hàng đợi nền",         status:"todo" },

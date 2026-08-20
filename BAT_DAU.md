@@ -143,7 +143,7 @@ Giai đoạn ① là giai đoạn duy nhất **không ai chặn ai** — cả 5 
 | P1 — Tài | `recorder-lite` + export ONNX giả + module `useLandmarks` |
 | P2 — Khải | **FE shell** — ưu tiên tuyệt đối |
 | P3 — An | BE `collection` |
-| P4 — Hùng | BE `vocabulary` + seed 12 ký hiệu |
+| P4 — Hùng | BE `vocabulary` + seed 10 ký hiệu |
 | P5 — Đức | BE `modelregistry` + `stats` |
 
 **Bốn thứ phải xong và push trong tối nay** (nếu không, sáng mai có người không làm được gì):
@@ -153,19 +153,23 @@ Giai đoạn ① là giai đoạn duy nhất **không ai chặn ai** — cả 5 
 - `useLandmarks` — Tài (P1)
 - `recorder-lite` — Tài (P1) *(chưa xong thì cả nhóm không quay được)*
 
-**Sáng mai:** cả nhóm quay dữ liệu đợt 1 — **12 ký hiệu × 12 lần + 15 clip `idle`** mỗi người.
+**Sáng mai:** cả nhóm quay dữ liệu đợt 1 — **10 ký hiệu × 12 lần + 15 clip `idle`** mỗi người.
 
-**12 ký hiệu đã chốt** (recorder-lite tự hiện sẵn, không phải tự chọn):
+**10 ký hiệu đã chốt** (recorder-lite tự hiện sẵn, không phải tự chọn):
 
 | | | | |
 |---|---|---|---|
-| xin chào | cảm ơn | bạn | tôi |
-| không | có | giúp đỡ | học |
-| gia đình | nhà | ăn | đi |
+| chào | xin lỗi | tạm biệt | bố |
+| mẹ (má) | thèm | mù chữ | bực mình |
+| nước Việt Nam | người nước ngoài | | |
 
-Cộng lớp `idle` (ngồi yên, gãi đầu, uống nước, chỉnh tóc) → **13 lớp**.
+Cộng lớp `idle` (ngồi yên, gãi đầu, uống nước, chỉnh tóc) → **11 lớp có dữ liệu**.
 
-Lý do chọn đúng 12 từ này — và vì sao loại `tạm biệt`, `xin lỗi`, `uống`, nhóm người thân, nhóm thời gian — xem `specs/010-p1-foundation/spec.md` §4.
+Cả 10 từ **đã tra tay trên `qipedc.moet.gov.vn/dictionary`** và có video mẫu thật. Danh sách 12 từ trước đó bị bỏ vì chọn bằng suy đoán: tra thử thì `xin chào` không tồn tại (chỉ có `chào`), `cảm ơn` không ra kết quả. Lý do đầy đủ xem `specs/010-p1-foundation/spec.md` §4.
+
+> **Trước khi quay, cả nhóm xem video mẫu QIPEDC của 10 từ này một lượt.** Không có video mẫu thì 5 người sẽ làm 5 kiểu khác nhau cho cùng một nhãn, model học lớp có nhiều biến thể mâu thuẫn → độ chính xác thấp mà không ai truy được nguyên nhân. Đây là bước quyết định 600 clip có giá trị hay không.
+
+**Cách quay cho đúng:** vào việc ngay khi hết đếm ngược, làm động tác **một lần với tốc độ tự nhiên**, xong thì hạ tay. Đừng cố kéo dài cho đủ 3 giây, đừng làm hai lần trong một clip, và **đừng giữ tay lơ lửng** sau khi làm xong — mất tay ở đầu/cuối clip là bình thường, recorder sẽ không báo lỗi.
 
 ---
 

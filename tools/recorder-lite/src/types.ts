@@ -1,6 +1,10 @@
 /**
  * Kieu du lieu dung chung cho recorder-lite.
  * Doi chieu voi specs/010-p1-foundation/spec.md muc 3 (dinh dang .vslm) va muc 4 (P1-1).
+ *
+ * Phan trich landmark dung chung (POINTS_PER_FRAME, FrameSample, Presence, ...)
+ * da chuyen sang shared/landmarks/ (P1-4) va duoc re-export lai o day de khong
+ * phai sua import o nhieu noi trong recorder-lite.
  */
 
 // ---- shared/labels.json --------------------------------------------------
@@ -18,65 +22,33 @@ export interface LabelsFile {
   labels: LabelEntry[];
 }
 
-// ---- landmark theo khung hinh ---------------------------------------------
+// ---- landmark theo khung hinh (chuyen sang shared/landmarks/types.ts) -----
 
-/** Mot khung hinh landmark da gom: 75 diem x 4 gia tri (x, y, z, visibility). */
-export const POINTS_PER_FRAME = 75;
-export const VALUES_PER_POINT = 4;
-export const POSE_POINT_COUNT = 33;
-export const HAND_POINT_COUNT = 21;
+export type { FrameMask, FrameSample, LiveStats, Presence } from "@shared/landmarks";
+export {
+  POINTS_PER_FRAME,
+  VALUES_PER_POINT,
+  POSE_POINT_COUNT,
+  HAND_POINT_COUNT,
+  POSE_START,
+  LEFT_HAND_START,
+  RIGHT_HAND_START,
+} from "@shared/landmarks";
 
-/** Vi tri bat dau cua tung nhom trong mang 75 diem, khop spec §3. */
-export const POSE_START = 0;
-export const LEFT_HAND_START = POSE_POINT_COUNT; // 33
-export const RIGHT_HAND_START = POSE_POINT_COUNT + HAND_POINT_COUNT; // 54
+// ---- header file .vslm (VslmHeader + POINT_LAYOUT chuyen sang shared/landmarks) --
 
-/** Mask 3 gia tri: [pose, tay trai, tay phai], moi gia tri 0 hoac 1. */
-export type FrameMask = [number, number, number];
+export type { VslmHeader } from "@shared/landmarks";
+export { POINT_LAYOUT } from "@shared/landmarks";
 
-export interface FrameSample {
-  /** Do dai co dinh POINTS_PER_FRAME * VALUES_PER_POINT = 300. */
-  points: Float32Array;
-  mask: FrameMask;
-  /** Giay, tuong doi so voi khung dau tien cua lan ghi. */
-  timestampSec: number;
-}
-
-// ---- header file .vslm (spec §3, 12 truong bat buoc) ----------------------
-
-export interface VslmHeader {
-  format: "vslm";
-  version: 1;
-  participant_code: string;
-  sign_code: string;
-  label_index: number;
-  frame_count: number;
-  point_layout: [["pose", 33], ["left_hand", 21], ["right_hand", 21]];
-  values_per_point: 4;
-  duration_ms: number;
-  fps_avg: number;
-  video_width: number;
-  video_height: number;
-  recorded_at: string;
-  recorder_version: "lite-1";
-}
-
+/**
+ * Nhan dang phien ban recorder-lite ghi vao header.recorder_version. Rieng
+ * cua recorder-lite (Recorder that cua P3 se dung gia tri khac) nen o lai
+ * day, khong chuyen sang shared/landmarks - xem VslmWriteInput.recorderVersion
+ * trong shared/landmarks/vslmWriter.ts.
+ */
 export const RECORDER_VERSION = "lite-1" as const;
 
-export const POINT_LAYOUT: VslmHeader["point_layout"] = [
-  ["pose", 33],
-  ["left_hand", 21],
-  ["right_hand", 21],
-];
-
-// ---- trang thai thoi gian thuc hien thi tren UI ---------------------------
-
-export interface LiveStats {
-  fps: number;
-  poseSeen: boolean;
-  leftHandSeen: boolean;
-  rightHandSeen: boolean;
-}
+// ---- ket qua tinh toan sau mot lan ghi -------------------------------------
 
 /** Ket qua tinh toan sau khi ket thuc mot lan ghi, dung de hien thi man hinh Review. */
 export interface RecordingSummary {
@@ -86,6 +58,10 @@ export interface RecordingSummary {
   leftHandRatio: number;
   rightHandRatio: number;
   bothHandsMissingRatio: number;
+  /** Doan LIEN TUC dai nhat (giay) co it nhat mot tay — thuoc do chinh de danh
+   *  gia clip. Mat tay o dau/cuoi clip la binh thuong (pha chuan bi / ha tay),
+   *  chi mat o giua moi la loi. Xem chu thich trong summary.ts. */
+  longestHandRunSec: number;
   lowFps: boolean;
   tooManyMissingHands: boolean;
 }

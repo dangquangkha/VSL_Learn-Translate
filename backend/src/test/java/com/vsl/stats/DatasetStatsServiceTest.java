@@ -173,7 +173,7 @@ class DatasetStatsServiceTest {
         var metrics = (com.fasterxml.jackson.databind.node.ObjectNode) mapper.readTree(MetricsFixture.validMetrics());
         metrics.put("modelSizeBytes", 1234);
         ModelVersion model = ModelVersion.create(UUID.randomUUID(), "1.2.0", "models/1.2.0/model.onnx",
-                "927342372dcfb1c70d8afb2867324932d3171f30bb6a0cdc24aaea4971a2bf2f",
+                "22c0ff1688cddde59683322e549c51a0b470135f084c2142bc1940a4919f0767",
                 "a".repeat(64), mapper.valueToTree(ModelContract.requiredSignature()), metrics,
                 true, mapper.createObjectNode().put("all", "PASSED"), Instant.parse("2026-08-20T03:00:00Z"));
         model.activate();
