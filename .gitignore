@@ -40,3 +40,6 @@ backend/target/
 # Du lieu quay (clip landmark cua nguoi that). Repo PUBLIC — khong bao gio commit.
 # 600+ clip .vslm, moi clip ~40-90KB. Xem PHAN_CONG.md muc 7.
 data/
+
+# Checkpoint PyTorch sinh ra khi train — khong commit (sinh lai duoc tu data)
+*.pt
