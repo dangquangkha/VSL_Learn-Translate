@@ -36,6 +36,7 @@ Sau đó dữ liệu nằm ở `/kaggle/input/vsl-landmarks/`.
 Tạo notebook mới → **Add Input** → chọn dataset `vsl-landmarks` → dán:
 
 ```python
+# Neu nhanh feat/p1-dataset-va-train CHUA merge vao main, them: -b feat/p1-dataset-va-train
 !git clone -q https://github.com/dangquangkha/VSL_Learn-Translate /kaggle/working/vsl
 %cd /kaggle/working/vsl
 
