@@ -51,6 +51,24 @@ const HAND_MODEL_URL =
 const POSE_MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 
+/**
+ * Nguong tin cay cua HandLandmarker. Mac dinh cua MediaPipe la 0.5 cho ca ba.
+ *
+ * Ha xuong 0.3 vi do do thuc te tren clip quay that: may chay ~24fps nen moi
+ * khung cach nhau ~42ms, tay quet nhanh tao vet mo (motion blur) va nguong 0.5
+ * loai luon nhung khung do. Do duoc: khung bi mat dau co toc do co tay nhanh
+ * gap 6.7-11.1 lan trung binh, tap trung o luc dua tay vao va rut tay ra.
+ *
+ * Khong ha thap hon 0.3: landmark tren khung qua mo se lech nhieu, ma toa do
+ * SAI kem mask=1 con hai hon la mat dau kem mask=0 - model khong the biet du
+ * lieu do khong dang tin.
+ */
+const HAND_CONFIDENCE = {
+  minHandDetectionConfidence: 0.3,
+  minHandPresenceConfidence: 0.3,
+  minTrackingConfidence: 0.3,
+} as const;
+
 export interface Landmarkers {
   handLandmarker: HandLandmarkerClass;
   poseLandmarker: PoseLandmarkerClass;
@@ -87,6 +105,7 @@ async function createHandLandmarker(
       baseOptions: { modelAssetPath: HAND_MODEL_URL, delegate: "GPU" },
       runningMode: "VIDEO",
       numHands: 2,
+      ...HAND_CONFIDENCE,
     });
   } catch (err) {
     console.warn(
@@ -97,6 +116,7 @@ async function createHandLandmarker(
       baseOptions: { modelAssetPath: HAND_MODEL_URL, delegate: "CPU" },
       runningMode: "VIDEO",
       numHands: 2,
+      ...HAND_CONFIDENCE,
     });
   }
 }

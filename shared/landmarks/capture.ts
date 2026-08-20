@@ -60,7 +60,16 @@ export async function startWebcam(
   video: HTMLVideoElement,
 ): Promise<{ width: number; height: number }> {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+    video: {
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      facingMode: "user",
+      // Xin ro 30fps: do tren clip that chi dat 23-24fps. Webcam thuong tu ha
+      // fps khi thieu sang de tang thoi gian phoi sang - dieu do vua giam so
+      // khung vua tao vet mo lam mat dau tay. Yeu cau nay khong ep duoc phan
+      // cung, nhung noi ro y dinh de trinh duyet uu tien fps hon do sang.
+      frameRate: { ideal: 30 },
+    },
     audio: false,
   });
   video.srcObject = stream;
