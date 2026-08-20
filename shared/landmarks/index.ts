@@ -7,3 +7,4 @@ export * from "./mediapipe";
 export * from "./capture";
 export * from "./frameAssembler";
 export * from "./vslmWriter";
+export * from "./skeletonPlayer";

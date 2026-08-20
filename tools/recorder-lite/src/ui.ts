@@ -21,7 +21,11 @@ export interface AppElements {
   showAllLabels: HTMLInputElement;
   recordBtn: HTMLButtonElement;
   reviewPanel: HTMLElement;
+  reviewCanvas: HTMLCanvasElement;
   reviewVideo: HTMLVideoElement;
+  reviewVideoCol: HTMLElement;
+  recordVideoToggle: HTMLInputElement;
+  reviewFpsBefore: HTMLElement;
   reviewFrameCount: HTMLElement;
   reviewFpsAvg: HTMLElement;
   reviewLeftRatio: HTMLElement;
@@ -74,20 +78,35 @@ const TEMPLATE = `
             <input type="checkbox" id="showAllLabels" />
             Hiện tất cả 51 ký hiệu (thay vì 10 ký hiệu demo)
           </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="recordVideoToggle" checked />
+            Ghi video xem lại <span class="hint">(tắt nếu fps tụt)</span>
+          </label>
         </div>
 
         <button id="recordBtn" class="record-btn" disabled>Ghi (3 giây)</button>
 
         <div id="reviewPanel" class="review-panel hidden">
           <h2>Kết quả lần ghi</h2>
-          <video id="reviewVideo" class="review-video" playsinline autoplay loop muted></video>
+          <div class="review-media">
+            <div class="review-media-col">
+              <span class="review-media-label">Model nhìn thấy</span>
+              <canvas id="reviewCanvas" class="review-canvas" width="320" height="180"></canvas>
+            </div>
+            <div class="review-media-col" id="reviewVideoCol">
+              <span class="review-media-label">Video thật</span>
+              <video id="reviewVideo" class="review-video" playsinline autoplay loop muted></video>
+            </div>
+          </div>
           <p class="review-video-note">
-            Xem lại để đối chiếu với video mẫu QIPEDC. Đoạn này chỉ để xem, KHÔNG
-            được lưu vào file <code>.vslm</code> và không rời khỏi máy bạn.
+            Đây là <b>đúng thứ model nhìn thấy</b> — không phải video. Tay bị mất dấu
+            sẽ biến mất khỏi khung xương. Đối chiếu hình tay và hướng chuyển động với
+            video mẫu QIPEDC.
           </p>
           <ul class="review-list">
             <li>Số khung hình: <b id="reviewFrameCount"></b></li>
-            <li>FPS trung bình: <b id="reviewFpsAvg"></b></li>
+            <li>FPS trong lúc ghi: <b id="reviewFpsAvg"></b></li>
+            <li>FPS ngay trước khi ghi: <b id="reviewFpsBefore"></b> <span class="hint">(chênh lệch = chi phí ghi video)</span></li>
             <li>Tỉ lệ thấy tay trái: <b id="reviewLeftRatio"></b></li>
             <li>Tỉ lệ thấy tay phải: <b id="reviewRightRatio"></b></li>
             <li>Tỉ lệ mất cả hai tay: <b id="reviewBothMissingRatio"></b></li>
@@ -133,7 +152,11 @@ export function renderApp(root: HTMLElement): AppElements {
     showAllLabels: mustGet<HTMLInputElement>("showAllLabels"),
     recordBtn: mustGet<HTMLButtonElement>("recordBtn"),
     reviewPanel: mustGet("reviewPanel"),
+    reviewCanvas: mustGet("reviewCanvas") as HTMLCanvasElement,
     reviewVideo: mustGet("reviewVideo") as HTMLVideoElement,
+    reviewVideoCol: mustGet("reviewVideoCol"),
+    recordVideoToggle: mustGet("recordVideoToggle") as HTMLInputElement,
+    reviewFpsBefore: mustGet("reviewFpsBefore"),
     reviewFrameCount: mustGet("reviewFrameCount"),
     reviewFpsAvg: mustGet("reviewFpsAvg"),
     reviewLeftRatio: mustGet("reviewLeftRatio"),

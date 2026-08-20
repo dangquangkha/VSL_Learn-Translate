@@ -322,16 +322,15 @@ body {
 /* Doan xem lai o man Review — de doi chieu voi video mau QIPEDC.
    Lat guong cho khop voi khung webcam truc tiep, neu khong nguoi quay se thay
    dong tac nguoc ben va tuong minh lam sai. */
-.review-video {
+.review-canvas {
   width: 100%;
   max-height: 260px;
   border-radius: 8px;
-  background: #000;
-  transform: scaleX(-1);
-  object-fit: contain;
+  background: #0d1117;
+  display: block;
 }
 
-.review-video.hidden {
+.review-canvas.hidden {
   display: none;
 }
 
@@ -340,4 +339,40 @@ body {
   font-size: 12px;
   line-height: 1.45;
   color: #9aa4b2;
+}
+
+/* Man Review: khung xuong (model nhin thay) canh video that (mat nguoi nhin thay) */
+.review-media {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.review-media-col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.review-media-col.hidden {
+  display: none;
+}
+
+.review-media-label {
+  display: block;
+  font-size: 11px;
+  color: #8b949e;
+  margin-bottom: 3px;
+}
+
+.review-media .review-canvas,
+.review-media .review-video {
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+  border-radius: 8px;
+}
+
+.hint {
+  color: #6e7681;
+  font-size: 11px;
 }

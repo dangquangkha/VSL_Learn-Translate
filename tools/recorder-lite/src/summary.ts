@@ -5,6 +5,9 @@
  */
 import type { FrameSample, RecordingSummary } from "./types";
 
+/** Lop ky thuat "khong lam ky hieu gi" — mien tru kiem tra tay. */
+const IDLE_CODE = "idle";
+
 const LOW_FPS_THRESHOLD = 15;
 
 /**
@@ -28,7 +31,19 @@ const LOW_FPS_THRESHOLD = 15;
  */
 const MIN_CONTINUOUS_HAND_SEC = 1.0;
 
-export function computeSummary(frames: FrameSample[], durationMs: number): RecordingSummary {
+export function computeSummary(
+  frames: FrameSample[],
+  durationMs: number,
+  /**
+   * Ky hieu dang quay. Lop `idle` KHONG bi kiem tra tay: clip idle hop le la
+   * ngoi yen, gai dau, uong nuoc — nhieu clip khong co tay trong khung chut nao,
+   * va do chinh la thu can day cho model hoc "khong lam ky hieu gi".
+   * Ap tieu chi tay vao idle se bao do gan nhu moi clip idle, ma moi nguoi phai
+   * quay 15 clip loai nay. Do that: clip idle ngoi yen cho 60.6% khung mat ca
+   * hai tay.
+   */
+  signCode: string = "",
+): RecordingSummary {
   const frameCount = frames.length;
   const fpsAvg = durationMs > 0 ? (frameCount * 1000) / durationMs : 0;
 
@@ -70,6 +85,7 @@ export function computeSummary(frames: FrameSample[], durationMs: number): Recor
     bothHandsMissingRatio,
     longestHandRunSec,
     lowFps: fpsAvg < LOW_FPS_THRESHOLD,
-    tooManyMissingHands: longestHandRunSec < MIN_CONTINUOUS_HAND_SEC,
+    tooManyMissingHands:
+      signCode !== IDLE_CODE && longestHandRunSec < MIN_CONTINUOUS_HAND_SEC,
   };
 }
