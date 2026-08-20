@@ -261,10 +261,31 @@ Vì vậy màn hình luyện cụm phải hướng dẫn rõ ràng: **ký từng
 
 | Điều kiện | Xử lý |
 |---|---|
-| > 20% khung hình mất cả hai tay | Từ chối, yêu cầu quay lại |
+| ~~> 20% khung hình mất cả hai tay~~ → **đã thay, xem ghi chú bên dưới** | ~~Từ chối~~ |
+| **Đoạn liên tục dài nhất có ít nhất một tay < 1 giây** | Từ chối, yêu cầu quay lại |
 | Số khung hình hợp lệ < 20 | Từ chối |
 | Ký hiệu động nhưng phương sai landmark dưới ngưỡng | Cảnh báo "hình như bạn chưa cử động", cho phép giữ hoặc quay lại |
 | Không phát hiện được pose thân trên ở > 30% khung hình | Từ chối |
+
+> **Ghi chú sửa đổi (2026-08-20, P1) — vì sao bỏ ngưỡng "> 20% khung mất cả hai tay":**
+>
+> Ngưỡng đó đếm **tổng** số khung mất tay mà không quan tâm chúng nằm ở đâu, nên gộp
+> chung hai thứ khác hẳn nhau: mất tay ở **giữa** động tác (lỗi thật — tay bị che, ra
+> ngoài khung) và mất tay ở **đầu/cuối** clip (bình thường — cử chỉ có ba pha chuẩn bị
+> → nhấn → thu về, người quay hạ tay sau khi làm xong).
+>
+> Đo trên clip quay thật (P01, 3 clip): tỉ lệ mất tay 4,3% / 16,2% / 9,7%, trong đó hai
+> clip sau mất **100% ở phần đuôi**. Cả ba đều ghi trọn vẹn động tác, nhưng clip 16,2%
+> bị ngưỡng cũ đánh dấu "gần hỏng". Với clip 3 giây mà ký hiệu chỉ kéo dài 1,5–2 giây
+> thì đầu cộng đuôi vượt 20% là chuyện bình thường.
+>
+> Nguy hiểm hơn con số: cảnh báo sai khiến người quay **giữ tay lơ lửng cho đủ 3 giây**,
+> tạo ra động tác không tồn tại ngoài đời. Model học "làm xong tay vẫn treo đó", rồi lúc
+> dùng thật người dùng hạ tay như bình thường — lệch phân phối ngay tại tầng dữ liệu,
+> không test nào bắt được.
+>
+> Cài đặt tham chiếu: `tools/recorder-lite/src/summary.ts`. Ràng buộc đầy đủ cho phía
+> client: `frontend/AGENTS.md` §3.
 
 **Điều phối phân bổ:** khi một người mở link mời, backend cấp cho họ nhóm 10 ký hiệu **đang có ít mẫu hợp lệ nhất** trong toàn dataset. Không có bước này, các ký hiệu đầu danh sách sẽ thừa mẫu còn cuối danh sách thiếu.
 

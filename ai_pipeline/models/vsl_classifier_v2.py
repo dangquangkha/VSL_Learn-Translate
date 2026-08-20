@@ -41,6 +41,12 @@ FEATURE_DIM = COORD_FEATURES * 2 + NUM_MASK_CH  # 333 = toạ độ + vận tố
 LEFT_SHOULDER_SEL = 1  # vị trí của pose[11] trong SELECTED_POINTS
 RIGHT_SHOULDER_SEL = 2  # vị trí của pose[12] trong SELECTED_POINTS
 
+# Mốc quy chiếu cho kênh vận tốc: 1 khung ở 30fps. Vận tốc được chia cho bước
+# thời gian THẬT rồi nhân lại hằng số này, nên giá trị có nghĩa là "dịch chuyển
+# trong 1/30 giây" bất kể cửa sổ đầu vào dài 2 hay 3 giây, và bất kể máy quay
+# chạy 24 hay 30fps. Xem bước B7 trong VSLPreprocessorV2.
+REFERENCE_STEP_SEC = 1.0 / 30.0
+
 assert len(SELECTED_POINTS) == 55
 assert FEATURE_DIM == 333
 
@@ -144,15 +150,43 @@ class VSLPreprocessorV2(nn.Module):
         coords = _gather(feat, i0) * (1.0 - w) + _gather(feat, i1) * w  # [B,32,165]
         mask32 = _gather(mk, i0) * (1.0 - w) + _gather(mk, i1) * w  # [B,32,3]
 
-        # --- B7 — vận tốc (KHÔNG gán in-place vào slice; dùng cat cho thân
-        # thiện với ONNX export) -----------------------------------------------
-        vel = torch.cat(
+        # --- B7 — vận tốc, CHUẨN HOÁ THEO THỜI GIAN THẬT ----------------------
+        #
+        # BẪY TRAIN/SERVE SKEW — đừng lấy sai phân trần giữa các khung sau nội suy:
+        # 32 khung sau nội suy KHÔNG có bước thời gian cố định, nó phụ thuộc độ dài
+        # cửa sổ đầu vào.
+        #   - Lúc train:  clip 3 giây  -> mỗi bước = 3/31 ≈ 96,8 ms
+        #   - Lúc chạy:   buffer 2 giây -> mỗi bước = 2/31 ≈ 64,5 ms
+        # Cùng một động tác, cùng tốc độ thật, sai phân trần sẽ cho velocity lệch
+        # nhau 1,5 lần. Model học "nhanh chừng này" rồi gặp dữ liệu chậm hơn 1,5
+        # lần — không test nào bắt được vì cả hai phía đều "chạy đúng".
+        #
+        # Chia cho bước thời gian thật rồi quy về mốc 1/30 giây: velocity trở
+        # thành "dịch chuyển trong một khung ở 30fps", độc lập với độ dài cửa sổ
+        # và với fps của máy quay.
+        raw_vel = torch.cat(
             [
                 torch.zeros_like(coords[:, :1, :]),
                 coords[:, 1:, :] - coords[:, :-1, :],
             ],
             dim=1,
         )  # [B,32,165]
+
+        # Khoảng thời gian thật của phần khung hợp lệ. Ô đệm có ts < 0 nên bị
+        # `valid` triệt tiêu; contract quy định khung hợp lệ dồn về đầu và
+        # timestamps tính tương đối so với khung đầu, nên max chính là độ dài.
+        span_sec = torch.amax(ts * valid, dim=1, keepdim=True)  # [B,1]
+        step_sec = span_sec / (self.target_frames - 1)  # [B,1]
+
+        # span = 0 (chỉ 1 khung hợp lệ, hoặc không có khung nào) -> giữ nguyên
+        # sai phân, không chia cho số gần 0.
+        time_scale = torch.where(
+            step_sec > 1e-6,
+            REFERENCE_STEP_SEC / step_sec.clamp(min=1e-6),
+            torch.ones_like(step_sec),
+        )  # [B,1]
+
+        vel = raw_vel * time_scale.unsqueeze(-1)  # [B,32,165]
 
         # --- B8 — ghép đặc trưng ------------------------------------------------
         return torch.cat([coords, vel, mask32], dim=-1)  # [B,32,333]

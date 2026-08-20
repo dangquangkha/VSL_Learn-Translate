@@ -21,6 +21,7 @@ export interface AppElements {
   showAllLabels: HTMLInputElement;
   recordBtn: HTMLButtonElement;
   reviewPanel: HTMLElement;
+  reviewVideo: HTMLVideoElement;
   reviewFrameCount: HTMLElement;
   reviewFpsAvg: HTMLElement;
   reviewLeftRatio: HTMLElement;
@@ -71,7 +72,7 @@ const TEMPLATE = `
           <select id="signSelect"></select>
           <label class="checkbox-row">
             <input type="checkbox" id="showAllLabels" />
-            Hiện tất cả 51 ký hiệu (thay vì 12 mặc định)
+            Hiện tất cả 51 ký hiệu (thay vì 10 ký hiệu demo)
           </label>
         </div>
 
@@ -79,6 +80,11 @@ const TEMPLATE = `
 
         <div id="reviewPanel" class="review-panel hidden">
           <h2>Kết quả lần ghi</h2>
+          <video id="reviewVideo" class="review-video" playsinline autoplay loop muted></video>
+          <p class="review-video-note">
+            Xem lại để đối chiếu với video mẫu QIPEDC. Đoạn này chỉ để xem, KHÔNG
+            được lưu vào file <code>.vslm</code> và không rời khỏi máy bạn.
+          </p>
           <ul class="review-list">
             <li>Số khung hình: <b id="reviewFrameCount"></b></li>
             <li>FPS trung bình: <b id="reviewFpsAvg"></b></li>
@@ -127,6 +133,7 @@ export function renderApp(root: HTMLElement): AppElements {
     showAllLabels: mustGet<HTMLInputElement>("showAllLabels"),
     recordBtn: mustGet<HTMLButtonElement>("recordBtn"),
     reviewPanel: mustGet("reviewPanel"),
+    reviewVideo: mustGet("reviewVideo") as HTMLVideoElement,
     reviewFrameCount: mustGet("reviewFrameCount"),
     reviewFpsAvg: mustGet("reviewFpsAvg"),
     reviewLeftRatio: mustGet("reviewLeftRatio"),

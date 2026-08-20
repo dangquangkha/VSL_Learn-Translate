@@ -15,7 +15,7 @@ Repo chưa có frontend và chưa có dữ liệu. Bốn đầu việc trong spe
 
 Mục tiêu **không phải** sản phẩm hoàn chỉnh, mà là bốn thứ tối thiểu để cả nhóm chạy song song:
 
-1. Một công cụ quay đủ dùng để 5 người thu 720 clip.
+1. Một công cụ quay đủ dùng để 5 người thu 600 clip.
 2. Một định dạng file landmark được cả JavaScript (ghi) lẫn Python (đọc) thống nhất.
 3. Một file `.onnx` đúng interface cuối cùng để P2/P4 build mà không chờ model thật.
 4. Một module trích landmark dùng chung cho recorder, chế độ Dịch và chế độ Học.
@@ -124,7 +124,7 @@ Mỗi điểm 4 giá trị `float32`: `x`, `y`, `z`, `visibility`.
   "format": "vslm",
   "version": 1,
   "participant_code": "P01",
-  "sign_code": "xin_chao",
+  "sign_code": "chao",
   "label_index": 1,
   "frame_count": 88,
   "point_layout": [["pose", 33], ["left_hand", 21], ["right_hand", 21]],
@@ -141,7 +141,7 @@ Mỗi điểm 4 giá trị `float32`: `x`, `y`, `z`, `visibility`.
 ### Tên file
 
 `{participant_code}__{sign_code}__{recorded_at_compact}.vslm`
-ví dụ `P01__xin_chao__20260819T213000123Z.vslm`
+ví dụ `P01__chao__20260819T213000123Z.vslm`
 
 ### Acceptance Criteria — P1-3
 
@@ -154,40 +154,60 @@ ví dụ `P01__xin_chao__20260819T213000123Z.vslm`
 
 ## 4. P1-1 — `recorder-lite`
 
-Công cụ quay tạm, **độc lập hoàn toàn** với `frontend/`. Mục đích duy nhất: để 5 thành viên nhóm thu được 720 clip trong sáng mai. Không phải Recorder thật (đó là `P3-2` của An, có consent, metadata, kiểm tra thiết bị đầy đủ).
+Công cụ quay tạm, **độc lập hoàn toàn** với `frontend/`. Mục đích duy nhất: để 5 thành viên nhóm thu được 600 clip trong sáng mai. Không phải Recorder thật (đó là `P3-2` của An, có consent, metadata, kiểm tra thiết bị đầy đủ).
 
-### 12 ký hiệu demo — ĐÃ CHỐT
+### 10 ký hiệu demo — ĐÃ CHỐT (tra QIPEDC thật, 2026-08-20)
 
-Nguyên tắc chọn: tránh các cặp dễ nhầm, trải đều về **vị trí thực hiện** (mặt / ngực / không gian trung tính) và **kiểu chuyển động**. Với 12 lớp mà chỉ ~60 mẫu/lớp, hai ký hiệu giống nhau là đủ để kéo tụt độ chính xác trên sân khấu.
+Toàn bộ 10 từ dưới đây **đã được tra tay trên `qipedc.moet.gov.vn/dictionary`** và có
+video mẫu thật. Trong `shared/labels.json` chúng mang `dictionary_source: "QIPEDC"`;
+40 nhãn còn lại mang `"UNVERIFIED"`.
 
-| id | code | Lý do chọn |
+| id | code | Hiển thị |
 |---|---|---|
-| 1 | `xin_chao` | Chào hỏi, thực hiện gần đầu |
-| 2 | `cam_on` | Xã giao, khác vị trí với `xin_chao` |
-| 5 | `ban` | Chỉ ra ngoài |
-| 6 | `toi` | Chỉ vào mình — tương phản rõ với `ban` |
-| 10 | `khong` | Phủ định |
-| 11 | `co` | Khẳng định — tương phản rõ với `khong` |
-| 12 | `giup_do` | Hai tay, chuyển động nâng |
-| 15 | `hoc` | Trừu tượng |
-| 21 | `gia_dinh` | Hai tay, chuyển động vòng |
-| 30 | `nha` | Hai tay tạo hình mái — khác biệt nhất trong tập |
-| 34 | `an` | Tay đưa lên miệng |
-| 38 | `di` | Chuyển động ngang |
+| 1 | `chao` | Chào |
+| 3 | `xin_loi` | Xin lỗi |
+| 4 | `tam_biet` | Tạm biệt |
+| 22 | `bo` | Bố |
+| 23 | `me` | Mẹ (má) |
+| 42 | `them` | Thèm |
+| 43 | `mu_chu` | Mù chữ |
+| 44 | `buc_minh` | Bực mình |
+| 45 | `nuoc_viet_nam` | Nước Việt Nam |
+| 46 | `nguoi_nuoc_ngoai` | Người nước ngoài |
 
-Cộng lớp `idle` (id 0) → **13 lớp** cho model demo.
+Cộng lớp `idle` (id 0) → **11 lớp có dữ liệu**. Interface ONNX vẫn giữ `logits [1, 51]`
+— 40 lớp còn lại không có dữ liệu train, nhưng giữ nguyên số lớp để thêm từ về sau
+không phải đổi contract với P2 và P4.
 
-**Đã loại có chủ đích:**
+**Mục tiêu dữ liệu:** 5 người × 10 ký hiệu × 12 lần = **600 clip** (60 clip/lớp) +
+~15 clip `idle`/người. Con số 12 lần/người suy ngược từ mục tiêu 60 mẫu mỗi lớp.
 
-| Loại bỏ | Vì |
-|---|---|
-| `tam_biet` | Dễ nhầm `xin_chao` — cả hai thường là động tác vẫy tay |
-| `xin_loi` | Dễ nhầm `cam_on` — cùng xuất phát từ vùng cằm/miệng |
-| `uong` | Dễ nhầm `an` — cùng vị trí ở miệng |
-| `anh` `chi` `em` `bo` `me` `ong` `ba` | Nhóm người thân thường chung hình tay, chỉ khác vị trí |
-| `hom_nay` `ngay_mai` `hom_qua` | **Rủi ro nhầm cao nhất** — thường cùng gốc, chỉ khác hướng chuyển động |
+#### Vì sao bỏ danh sách 12 từ trước đó
 
-> **Cần xác minh bằng mắt:** danh sách trên dựa trên đặc điểm chung của ngôn ngữ ký hiệu, **chưa đối chiếu video QIPEDC thật**. Tra thử 12 từ này trên `qipedc.moet.gov.vn/dictionary` (~5 phút) để xác nhận chúng thật sự khác nhau rõ; thấy cặp nào giống thì đổi sang từ khác trong `shared/labels.json`. Việc này đồng thời hoàn thành mốc kiểm chứng tuần 1 của SRS.
+Danh sách cũ (`xin_chao`, `cam_on`, `ban`, `toi`, `khong`, `co`, `giup_do`, `hoc`,
+`gia_dinh`, `nha`, `an`, `di`) được chọn bằng **suy đoán** về đặc điểm ngôn ngữ ký hiệu,
+không phải từ nguồn thật. Khi tra thử mới phát hiện:
+
+- **`xin_chao` không tồn tại** trong từ điển — chỉ có `chào`.
+- **`cam_on` không ra kết quả.**
+- `shared/labels.json` gắn `dictionary_source: "QIPEDC"` cho **cả 51 nhãn, kể cả `idle`**,
+  và `display_name_vi` viết không dấu ("Xin Chao") → trường này chưa từng được xác minh,
+  là giá trị điền sẵn khi file được sinh ra.
+
+Hậu quả nếu cứ quay theo danh sách cũ: không có video mẫu thì 5 người sẽ làm 5 kiểu
+khác nhau cho cùng một nhãn. Model học một lớp có nhiều biến thể mâu thuẫn → accuracy
+thấp, và **không ai truy được nguyên nhân** vì không test nào bắt được nhãn bẩn.
+`AGENTS.md` §1.1 cũng cấm dạy/đánh giá ký hiệu không có nguồn từ điển xác minh.
+
+#### Quy tắc thay nhãn về sau
+
+40 slot `UNVERIFIED` là **kho dự trữ**: tra thêm được từ nào thì ghi đè lên một slot,
+giữ nguyên tổng 51. Nhưng **id đã có clip quay thì đóng băng vĩnh viễn** — header `.vslm`
+lưu `label_index`, nên đổi nghĩa của một id sau khi đã quay sẽ làm toàn bộ clip đó mang
+nhãn sai một cách âm thầm. Chi tiết ghi trong `_luu_y` ở đầu `shared/labels.json`.
+
+Đổi `labels.json` xong phải chạy `py scripts/generate_labels.py` **và**
+`py -m ai_pipeline.export.export_onnx`; `test_label_hash_sync.py` canh việc này.
 
 ### Ghi nhận: `shared/labels.json` không khớp SRS Phụ lục A
 
@@ -203,14 +223,14 @@ Hai danh sách khác nhau đáng kể. `labels.json` **không có** số đếm 
 |---|---|
 | `R-01` | Ứng dụng Vite + TypeScript độc lập tại `tools/recorder-lite/`, chạy bằng `npm run dev`, **không cần backend, không cần đăng nhập** |
 | `R-02` | Người quay nhập `participant_code` (ví dụ `P01`) một lần khi bắt đầu phiên; lưu vào `localStorage` |
-| `R-03` | Chọn tập ký hiệu cần quay từ `shared/labels.json`; mặc định là 12 ký hiệu demo + `idle` |
+| `R-03` | Chọn tập ký hiệu cần quay từ `shared/labels.json`; mặc định là 10 ký hiệu demo + `idle` |
 | `R-04` | Hiển thị webcam trực tiếp, chạy MediaPipe Hand Landmarker + Pose Landmarker mỗi khung hình |
 | `R-05` | Hiển thị trạng thái thời gian thực: fps hiện tại, thấy pose hay không, thấy tay trái/phải hay không |
 | `R-06` | Nút Ghi → đếm ngược 3-2-1 → ghi landmark trong **3 giây** → tự dừng |
 | `R-07` | Sau khi ghi: hiện `frame_count`, `fps_avg`, tỉ lệ khung hình thấy tay; hai nút **Giữ** và **Quay lại** |
 | `R-08` | Bấm Giữ → sinh file `.vslm` theo §3 và tải về máy (Blob download) |
 | `R-09` | Bộ đếm phiên: hiển thị đã quay bao nhiêu lần cho mỗi ký hiệu, để người quay biết còn thiếu gì |
-| `R-10` | Cảnh báo (không chặn) nếu `fps_avg < 15` hoặc > 20% khung hình mất cả hai tay |
+| `R-10` | Cảnh báo (không chặn) nếu `fps_avg < 15` hoặc **đoạn liên tục dài nhất có tay < 1 giây**. Không dùng ngưỡng "> 20% khung mất cả hai tay" — mất tay ở đầu/cuối clip là pha chuẩn bị / hạ tay, hoàn toàn bình thường; xem ghi chú sửa đổi ở `SRS.md` FR-C04 và `frontend/AGENTS.md` §3 |
 
 ### Ngoài phạm vi P1-1
 
@@ -226,7 +246,7 @@ Phiếu đồng ý · khai metadata nhân khẩu · kiểm tra ánh sáng/khoả
 
 ### Kiểm tra `handedness` — ĐÃ XONG, rủi ro đóng lại
 
-Rủi ro đã nêu: MediaPipe phân loại tay dựa trên giả định ảnh đã lật gương, nhưng camera trả khung hình gốc — nên có khả năng giơ tay phải mà bị gắn nhãn `"Left"`. Nếu phát hiện sau khi 5 người quay xong 720 clip thì phải quay lại toàn bộ.
+Rủi ro đã nêu: MediaPipe phân loại tay dựa trên giả định ảnh đã lật gương, nhưng camera trả khung hình gốc — nên có khả năng giơ tay phải mà bị gắn nhãn `"Left"`. Nếu phát hiện sau khi 5 người quay xong 600 clip thì phải quay lại toàn bộ. — **ĐÃ XÁC MINH 2026-08-20**: quay thử bằng tay phải, dữ liệu vào đúng ô tay phải (62-67/70 khung), ô tay trái trống. Nhãn handedness ĐÚNG, không cần lật.
 
 **P1 đã kiểm tra bằng webcam thật: pose, tay trái và tay phải đều nhận diện đúng.**
 

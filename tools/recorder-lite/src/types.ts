@@ -58,6 +58,10 @@ export interface RecordingSummary {
   leftHandRatio: number;
   rightHandRatio: number;
   bothHandsMissingRatio: number;
+  /** Doan LIEN TUC dai nhat (giay) co it nhat mot tay — thuoc do chinh de danh
+   *  gia clip. Mat tay o dau/cuoi clip la binh thuong (pha chuan bi / ha tay),
+   *  chi mat o giua moi la loi. Xem chu thich trong summary.ts. */
+  longestHandRunSec: number;
   lowFps: boolean;
   tooManyMissingHands: boolean;
 }

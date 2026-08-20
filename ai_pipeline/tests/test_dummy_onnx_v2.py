@@ -299,3 +299,112 @@ def test_parity_pytorch_vs_onnxruntime(
         )
 
     print(f"[parity] max_diff tong the (5 mau) = {max_diff_overall:.8e}")
+
+
+# --- 9. Van toc doc lap voi do dai cua so (chong train/serve skew) -----------
+
+
+def _quy_dao_theo_thoi_gian(
+    so_khung: int, tong_giay: float, giay_dong_tac: float | None = None
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Dung MOT dong tac vat ly giong het nhau, quan sat qua cua so dai ngan khac nhau.
+
+    Co tay ve nua cung tron trong dung `giay_dong_tac` giay (toc do that KHONG
+    doi), sau do dung yen cho het `tong_giay`. Day dung la tinh huong that: dong
+    tac ~2 giay nam trong clip 3 giay, phan con lai la luc ha tay.
+
+    Neu `giay_dong_tac` = None thi dong tac trai deu ca cua so.
+    """
+    landmarks = torch.zeros(1, NUM_FRAMES_IN, NUM_POINTS_RAW, VALUES_PER_POINT)
+    mask = torch.zeros(1, NUM_FRAMES_IN, NUM_MASK_CH)
+    timestamps = torch.full((1, NUM_FRAMES_IN), -1.0)
+
+    dong_tac = tong_giay if giay_dong_tac is None else giay_dong_tac
+
+    for f in range(so_khung):
+        giay = f / (so_khung - 1) * tong_giay  # thoi diem that cua khung nay
+        # Toc do that co dinh: hoan thanh nua vong trong `dong_tac` giay roi dung.
+        t = min(giay / dong_tac, 1.0)
+        goc = t * 3.1415926535  # nua vong tron
+
+        # Vai co dinh -> chuan hoa on dinh
+        landmarks[0, f, 11, :3] = torch.tensor([0.40, 0.45, 0.0])
+        landmarks[0, f, 12, :3] = torch.tensor([0.60, 0.45, 0.0])
+        landmarks[0, f, 11, 3] = 1.0
+        landmarks[0, f, 12, 3] = 1.0
+
+        # Co tay phai + ban tay phai di theo cung tron
+        x = 0.60 + 0.15 * float(torch.cos(torch.tensor(goc)))
+        y = 0.45 - 0.15 * float(torch.sin(torch.tensor(goc)))
+        landmarks[0, f, 16, :3] = torch.tensor([x, y, 0.0])
+        landmarks[0, f, 16, 3] = 1.0
+        for p in range(54, 75):
+            landmarks[0, f, p, :3] = torch.tensor([x + (p - 54) * 0.002, y, 0.0])
+            landmarks[0, f, p, 3] = 1.0
+
+        mask[0, f] = torch.tensor([1.0, 0.0, 1.0])
+        timestamps[0, f] = giay
+
+    return landmarks, mask, timestamps
+
+
+def test_van_toc_doc_lap_voi_do_dai_cua_so() -> None:
+    """Cung mot dong tac, lay mau trong cua so 3 giay (luc train, clip .vslm)
+    va cua so 2 giay (luc chay that, ring buffer) phai cho kenh van toc GAN
+    BANG NHAU.
+
+    Neu lay sai phan tran giua 32 khung sau noi suy ma khong chia cho buoc thoi
+    gian that, hai truong hop lech nhau dung ty le 3/2 = 1.5 lan — model hoc
+    "nhanh chung nay" roi gap du lieu cham hon 1.5 lan luc chay that.
+    """
+    pre = VSLClassifierV2().preprocessor
+    pre.eval()
+
+    # CUNG mot dong tac vat ly: nua cung tron hoan thanh trong 2.0 giay.
+    #   - Cua so 3 giay (luc train, clip .vslm): dong tac 2s + 1s ha tay dung yen
+    #   - Cua so 2 giay (luc chay that, ring buffer): chi chua dung dong tac
+    # Toc do that giong het nhau -> kenh van toc phai giong nhau.
+    lm3, mk3, ts3 = _quy_dao_theo_thoi_gian(so_khung=60, tong_giay=3.0, giay_dong_tac=2.0)
+    lm2, mk2, ts2 = _quy_dao_theo_thoi_gian(so_khung=60, tong_giay=2.0, giay_dong_tac=2.0)
+
+    with torch.no_grad():
+        f3 = pre(lm3, mk3, ts3)
+        f2 = pre(lm2, mk2, ts2)
+
+    # Kenh van toc = 165 gia tri o giua (sau 165 toa do, truoc 3 kenh mask)
+    vel3 = f3[0, :, 165:330]
+    vel2 = f2[0, :, 165:330]
+
+    bien_do3 = float(vel3.abs().max())
+    bien_do2 = float(vel2.abs().max())
+    ty_le = bien_do3 / max(bien_do2, 1e-9)
+
+    print(f"[skew] bien do van toc cua so 3s = {bien_do3:.6f}")
+    print(f"[skew] bien do van toc cua so 2s = {bien_do2:.6f}")
+    print(f"[skew] ty le 3s/2s = {ty_le:.4f}  (phai gan 1.0; neu ~1.5 la con skew)")
+
+    assert 0.9 < ty_le < 1.1, (
+        f"Van toc phu thuoc do dai cua so: ty le 3s/2s = {ty_le:.3f}. "
+        f"Dong tac giong het nhau ma dac trung khac nhau -> train/serve skew."
+    )
+
+    # --- Ghi nhan dang skew THU HAI, van con, va KHONG giai duoc trong graph --
+    #
+    # Kenh toa do VAN phu thuoc do dai cua so, vi noi suy trai deu 32 khung tren
+    # TOAN BO cua so: cua so 3 giay (2s dong tac + 1s ha tay) danh 1/3 so khung
+    # cho doan dung yen, con cua so 2 giay thi khong. Cung mot dong tac nhung
+    # "hinh dang theo thoi gian" khac nhau.
+    #
+    # Khong the sua bang cach chia cho thoi gian nhu voi van toc — no la he qua
+    # cua viec cua so chua nhieu hon phan dong tac.
+    #
+    # => RANG BUOC CHO P1-5 (dataset builder): phai sinh mau bang cach TRUOT
+    #    CUA SO 2 GIAY tren clip 3 giay, dung nhu ring buffer luc chay that,
+    #    thay vi nem ca clip 3 giay vao model. Test nay giu lai de so do lech
+    #    khong am tham bien mat khoi tri nho cua nguoi sau.
+    toa_do_diff = float((f3[0, :, :165] - f2[0, :, :165]).abs().max())
+    print(f"[skew] sai lech kenh TOA DO = {toa_do_diff:.4f} (van con — xem chu thich)")
+    assert toa_do_diff > 0.01, (
+        "Kenh toa do bong nhien doc lap voi do dai cua so — hanh vi noi suy da "
+        "doi. Doc lai chu thich tren truoc khi sua test nay."
+    )
