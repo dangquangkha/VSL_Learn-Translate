@@ -5,6 +5,13 @@
  */
 import type { HandLandmarker, PoseLandmarker } from "@mediapipe/tasks-vision";
 import { assembleFrame, detectPresence } from "./frameAssembler";
+import {
+  DEFAULT_PRESET_ID,
+  describeAspect,
+  getPreset,
+  isSixteenNine,
+  type ResolutionPreset,
+} from "./resolution";
 import type { FrameSample, LiveStats, Presence } from "./types";
 
 export interface RawFrame {
@@ -55,19 +62,45 @@ export class CaptureLoop {
   }
 }
 
-/** Xin quyen webcam va gan stream vao the <video>, tra ve do phan giai thuc te. */
+export interface WebcamInfo {
+  /** Chieu rong THUC TE nhan duoc, khong phai chieu rong da xin. */
+  width: number;
+  height: number;
+  /** Ti le thuc te co dung 16:9 khong. Sai thi KHONG duoc quay - xem resolution.ts. */
+  aspectOk: boolean;
+  /** Ten ti le thuc te de hien trong thong bao, vi du "4:3". */
+  aspectLabel: string;
+  /** Preset da xin, de doi chieu voi thu thuc su nhan duoc. */
+  requested: ResolutionPreset;
+}
+
+/**
+ * Xin quyen webcam va gan stream vao the <video>, tra ve do phan giai THUC TE.
+ *
+ * `getUserMedia` co the tra ve che do khac cai duoc xin (ca ba rang buoc deu la
+ * `ideal`, tuc rang buoc mem). Nen ket qua tra ve do lai tu
+ * `video.videoWidth/videoHeight` chu khong lap lai `preset`.
+ *
+ * DOI DO PHAN GIAI: phai goi `stopWebcam()` TRUOC khi goi lai ham nay. Track cu
+ * con mo thi trinh duyet co the tra lai dung cau hinh cu.
+ */
 export async function startWebcam(
   video: HTMLVideoElement,
-): Promise<{ width: number; height: number }> {
+  preset: ResolutionPreset = getPreset(DEFAULT_PRESET_ID),
+): Promise<WebcamInfo> {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: {
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
+      width: { ideal: preset.width },
+      height: { ideal: preset.height },
       facingMode: "user",
       // Xin ro 30fps: do tren clip that chi dat 23-24fps. Webcam thuong tu ha
       // fps khi thieu sang de tang thoi gian phoi sang - dieu do vua giam so
       // khung vua tao vet mo lam mat dau tay. Yeu cau nay khong ep duoc phan
       // cung, nhung noi ro y dinh de trinh duyet uu tien fps hon do sang.
+      //
+      // Van la `ideal` chu khong phai `min`: dat `min` se lam getUserMedia NEM
+      // LOI tren may khong co che do nao dat, tuc khong quay duoc gi ca. Doi
+      // preset xuong muc thap hon la cach an toan hon de lay lai fps.
       frameRate: { ideal: 30 },
     },
     audio: false,
@@ -75,7 +108,30 @@ export async function startWebcam(
   video.srcObject = stream;
   await video.play();
   await waitForVideoReady(video);
-  return { width: video.videoWidth, height: video.videoHeight };
+
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  return {
+    width,
+    height,
+    aspectOk: isSixteenNine(width, height),
+    aspectLabel: describeAspect(width, height),
+    requested: preset,
+  };
+}
+
+/**
+ * Dung moi track cua webcam va go stream khoi the <video>.
+ *
+ * Bat buoc goi truoc khi `startWebcam()` lai voi preset khac (xem chu thich o
+ * `startWebcam`). Goi nhieu lan khong sao.
+ */
+export function stopWebcam(video: HTMLVideoElement): void {
+  const stream = video.srcObject;
+  if (stream instanceof MediaStream) {
+    for (const track of stream.getTracks()) track.stop();
+  }
+  video.srcObject = null;
 }
 
 function waitForVideoReady(video: HTMLVideoElement): Promise<void> {
