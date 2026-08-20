@@ -19,7 +19,22 @@ public class JwtTokenProvider {
     private final SecretKey key;
     private final long expirationMs = 86400000L; // 24 hours in ms
 
-    public JwtTokenProvider(@Value("${jwt.secret:vsl_learn_translate_super_secret_jwt_key_256bits_minimum_length!}") String jwtSecret) {
+    /**
+     * KHONG THEM GIA TRI MAC DINH VAO @Value NAY.
+     *
+     * Truoc day cho la: @Value("${jwt.secret:vsl_learn_translate_super_..._length!}")
+     * Repo nay PUBLIC tren GitHub, nen gia tri mac dinh do la khoa ky token
+     * cong khai: chi can quen dat bien moi truong JWT_SECRET la bat ky ai doc
+     * repo cung tu ky duoc token hop le cho BAT KY tai khoan nao, ke ca ADMIN.
+     * AGENTS.md muc 3 xep "Token Secrets" vao nhom CAM hardcode tuyet doi.
+     *
+     * Bo mac dinh -> thieu bien moi truong thi app KHONG khoi dong duoc. Do la
+     * co y: that bai ngay luc khoi dong thi thay ngay, con chay voi khoa cong
+     * khai thi khong ai biet cho den khi bi chiem tai khoan.
+     *
+     * Cach dat bien khi chay local: xem backend/AGENTS.md.
+     */
+    public JwtTokenProvider(@Value("${jwt.secret}") String jwtSecret) {
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
