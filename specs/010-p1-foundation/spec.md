@@ -15,7 +15,7 @@ Repo chưa có frontend và chưa có dữ liệu. Bốn đầu việc trong spe
 
 Mục tiêu **không phải** sản phẩm hoàn chỉnh, mà là bốn thứ tối thiểu để cả nhóm chạy song song:
 
-1. Một công cụ quay đủ dùng để 5 người thu 720 clip.
+1. Một công cụ quay đủ dùng để 5 người thu 600 clip.
 2. Một định dạng file landmark được cả JavaScript (ghi) lẫn Python (đọc) thống nhất.
 3. Một file `.onnx` đúng interface cuối cùng để P2/P4 build mà không chờ model thật.
 4. Một module trích landmark dùng chung cho recorder, chế độ Dịch và chế độ Học.
@@ -124,7 +124,7 @@ Mỗi điểm 4 giá trị `float32`: `x`, `y`, `z`, `visibility`.
   "format": "vslm",
   "version": 1,
   "participant_code": "P01",
-  "sign_code": "xin_chao",
+  "sign_code": "chao",
   "label_index": 1,
   "frame_count": 88,
   "point_layout": [["pose", 33], ["left_hand", 21], ["right_hand", 21]],
@@ -141,7 +141,7 @@ Mỗi điểm 4 giá trị `float32`: `x`, `y`, `z`, `visibility`.
 ### Tên file
 
 `{participant_code}__{sign_code}__{recorded_at_compact}.vslm`
-ví dụ `P01__xin_chao__20260819T213000123Z.vslm`
+ví dụ `P01__chao__20260819T213000123Z.vslm`
 
 ### Acceptance Criteria — P1-3
 
@@ -154,7 +154,7 @@ ví dụ `P01__xin_chao__20260819T213000123Z.vslm`
 
 ## 4. P1-1 — `recorder-lite`
 
-Công cụ quay tạm, **độc lập hoàn toàn** với `frontend/`. Mục đích duy nhất: để 5 thành viên nhóm thu được 720 clip trong sáng mai. Không phải Recorder thật (đó là `P3-2` của An, có consent, metadata, kiểm tra thiết bị đầy đủ).
+Công cụ quay tạm, **độc lập hoàn toàn** với `frontend/`. Mục đích duy nhất: để 5 thành viên nhóm thu được 600 clip trong sáng mai. Không phải Recorder thật (đó là `P3-2` của An, có consent, metadata, kiểm tra thiết bị đầy đủ).
 
 ### 10 ký hiệu demo — ĐÃ CHỐT (tra QIPEDC thật, 2026-08-20)
 
@@ -223,14 +223,14 @@ Hai danh sách khác nhau đáng kể. `labels.json` **không có** số đếm 
 |---|---|
 | `R-01` | Ứng dụng Vite + TypeScript độc lập tại `tools/recorder-lite/`, chạy bằng `npm run dev`, **không cần backend, không cần đăng nhập** |
 | `R-02` | Người quay nhập `participant_code` (ví dụ `P01`) một lần khi bắt đầu phiên; lưu vào `localStorage` |
-| `R-03` | Chọn tập ký hiệu cần quay từ `shared/labels.json`; mặc định là 12 ký hiệu demo + `idle` |
+| `R-03` | Chọn tập ký hiệu cần quay từ `shared/labels.json`; mặc định là 10 ký hiệu demo + `idle` |
 | `R-04` | Hiển thị webcam trực tiếp, chạy MediaPipe Hand Landmarker + Pose Landmarker mỗi khung hình |
 | `R-05` | Hiển thị trạng thái thời gian thực: fps hiện tại, thấy pose hay không, thấy tay trái/phải hay không |
 | `R-06` | Nút Ghi → đếm ngược 3-2-1 → ghi landmark trong **3 giây** → tự dừng |
 | `R-07` | Sau khi ghi: hiện `frame_count`, `fps_avg`, tỉ lệ khung hình thấy tay; hai nút **Giữ** và **Quay lại** |
 | `R-08` | Bấm Giữ → sinh file `.vslm` theo §3 và tải về máy (Blob download) |
 | `R-09` | Bộ đếm phiên: hiển thị đã quay bao nhiêu lần cho mỗi ký hiệu, để người quay biết còn thiếu gì |
-| `R-10` | Cảnh báo (không chặn) nếu `fps_avg < 15` hoặc > 20% khung hình mất cả hai tay |
+| `R-10` | Cảnh báo (không chặn) nếu `fps_avg < 15` hoặc **đoạn liên tục dài nhất có tay < 1 giây**. Không dùng ngưỡng "> 20% khung mất cả hai tay" — mất tay ở đầu/cuối clip là pha chuẩn bị / hạ tay, hoàn toàn bình thường; xem ghi chú sửa đổi ở `SRS.md` FR-C04 và `frontend/AGENTS.md` §3 |
 
 ### Ngoài phạm vi P1-1
 
@@ -246,7 +246,7 @@ Phiếu đồng ý · khai metadata nhân khẩu · kiểm tra ánh sáng/khoả
 
 ### Kiểm tra `handedness` — ĐÃ XONG, rủi ro đóng lại
 
-Rủi ro đã nêu: MediaPipe phân loại tay dựa trên giả định ảnh đã lật gương, nhưng camera trả khung hình gốc — nên có khả năng giơ tay phải mà bị gắn nhãn `"Left"`. Nếu phát hiện sau khi 5 người quay xong 720 clip thì phải quay lại toàn bộ.
+Rủi ro đã nêu: MediaPipe phân loại tay dựa trên giả định ảnh đã lật gương, nhưng camera trả khung hình gốc — nên có khả năng giơ tay phải mà bị gắn nhãn `"Left"`. Nếu phát hiện sau khi 5 người quay xong 600 clip thì phải quay lại toàn bộ. — **ĐÃ XÁC MINH 2026-08-20**: quay thử bằng tay phải, dữ liệu vào đúng ô tay phải (62-67/70 khung), ô tay trái trống. Nhãn handedness ĐÚNG, không cần lật.
 
 **P1 đã kiểm tra bằng webcam thật: pose, tay trái và tay phải đều nhận diện đúng.**
 

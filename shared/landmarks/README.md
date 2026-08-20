@@ -183,8 +183,8 @@ import { buildVslmFile, downloadVslmFile } from "@shared/landmarks";
 
 const file = buildVslmFile({
   participantCode: "P01",
-  signCode: "xin_chao",
-  labelIndex: 0,
+  signCode: "chao",
+  labelIndex: 1,   // PHAI khop id trong shared/labels.json (chao = 1, idle = 0)
   frames /* FrameSample[] thu thap tu createLandmarkStream */,
   durationMs: 3000,
   fpsAvg: 24.5,
