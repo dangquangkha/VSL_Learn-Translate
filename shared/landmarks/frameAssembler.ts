@@ -20,6 +20,7 @@ import {
   VALUES_PER_POINT,
   type FrameMask,
   type FrameSample,
+  type Presence,
 } from "./types";
 
 function writeZeroPoints(points: Float32Array, start: number, count: number): void {
@@ -96,12 +97,6 @@ function findHandByLabel(
     }
   }
   return null;
-}
-
-export interface Presence {
-  pose: boolean;
-  leftHand: boolean;
-  rightHand: boolean;
 }
 
 /**

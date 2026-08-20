@@ -13,6 +13,9 @@ dist/
 build/
 *.egg-info/
 *.onnx
+# Ngoai le: model gia P1-2 phai duoc commit de P2/P4 dung ngay, khong can
+# cai Python/torch de tu sinh. Xem models/DUMMY.md.
+!models/vsl_classifier_dummy_v2.onnx
 
 # Node / JS
 node_modules/

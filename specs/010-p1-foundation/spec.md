@@ -40,16 +40,50 @@ Mục tiêu **không phải** sản phẩm hoàn chỉnh, mà là bốn thứ t�
 
 > Ghi chú lệch so với SRS §5.2: SRS ghi `[1, 60, 55, 3]` (55 điểm đã chọn subset, 3 giá trị). Spec này dùng **75 điểm × 4 giá trị** để khớp với dữ liệu thô mà MediaPipe trả về (33 pose + 21×2 tay) và với yêu cầu §4.3 của SRS là **lưu toàn bộ landmark, không cắt subset**. Việc chọn 55 điểm là bước nằm **bên trong** ONNX graph, không phải việc của JavaScript.
 
-### 2.2 Lỗi đã phát hiện trong `preprocessor_module.py`
+### 2.2 Hai lỗi trong pipeline tiền xử lý có sẵn
+
+Cả hai đều tồn tại từ `first commit`, không phải do sprint này gây ra.
+
+**Lỗi A — `shoulder_normalizer.py` làm hỏng shape. ĐÃ SỬA ✅**
+
+```python
+scale_factor = 1.0 / (shoulder_dist + self.epsilon)   # da la [B, T, 1]
+x_reshaped = x_reshaped * scale_factor.unsqueeze(-1)  # -> [B, T, 1, 1]  SAI
+```
+
+`torch.norm` dùng `keepdim=True` nên `shoulder_dist` đã là `[B, T, 1]`, broadcast đúng với `[B, T, 333]`. Thêm `.unsqueeze(-1)` biến nó thành `[B, T, 1, 1]`, broadcast ra **`[B, T, T, 333]`** — thừa một chiều. `RotationAligner` ở bước sau slice `x[:, :, 48:50]` vào chiều rộng `T` thay vì chiều đặc trưng → `IndexError`.
+
+**Hệ quả:** toàn bộ pipeline tiền xử lý **chưa bao giờ chạy được**, kéo theo `export_onnx.py` chưa từng xuất thành công, nên `models/vsl_classifier_v1.onnx` không tồn tại và 2 test ONNX cũng fail. Tổng cộng 5/20 test fail đều quy về một dòng này.
+
+Đã sửa: bỏ `.unsqueeze(-1)`. Kết quả `pytest ai_pipeline/tests/` từ **5 failed → 2 failed** (2 test còn lại chờ file model của `P1-2`).
+
+**Lỗi B — `preprocessor_module.py` vứt kênh vận tốc. CHƯA SỬA**
 
 ```python
 _vel = self.velocity_calc(x)   # tính xong rồi vứt đi
-return x                        # thiếu ghép velocity + mask channel
+return x                        # thiếu ghép velocity + 3 kênh mask
 ```
 
-Bước 7 theo SRS phải trả về `[1, 32, 333]` = 165 toạ độ + 165 vận tốc + 3 kênh mask. Hiện tại `forward()` chỉ trả về đầu ra của interpolator.
+Bước 7 theo SRS phải trả về `[1, 32, 333]` = 165 toạ độ + 165 vận tốc + 3 kênh mask. Hiện `forward()` chỉ trả về đầu ra của interpolator — shape tình cờ đúng nên test shape vẫn pass, nhưng **nội dung sai**.
 
-**Không sửa trong spec này** — thuộc phạm vi `P1-6` (train.py). Ghi nhận ở đây để không ai tưởng phần tiền xử lý đã hoàn chỉnh.
+**Thuộc phạm vi `P1-6`** (train.py). Không sửa ở đây vì nó đổi ý nghĩa đặc trưng đầu vào, phải làm cùng lúc với việc thiết kế model.
+
+### 2.3 Xung đột layout: 333 đặc trưng ≠ 75 điểm của `.vslm`
+
+Đọc `rotation_aligner.py` và `shoulder_normalizer.py` cho thấy layout 333 đặc trưng của code có sẵn là:
+
+| Khối | Số điểm | Giá trị/điểm | Vị trí |
+|---|---|---|---|
+| pose | 33 | 4 | 0–131 |
+| tay trái | 21 | 3 | 132–194 |
+| tay phải | 21 | 3 | 195–257 |
+| **mặt** | **25** | 3 | **258–332** |
+
+Tổng **100 điểm**, có riêng một khối 25 điểm khuôn mặt.
+
+Nhưng `.vslm` (§3) lưu **75 điểm**, không có khối mặt — và `recorder-lite` chỉ chạy Hand + Pose Landmarker, **không có FaceLandmarker**, nên không tồn tại nguồn dữ liệu nào cho 25 điểm đó.
+
+**Hệ quả cho `P1-2` và `P1-6`:** không thể đưa thẳng dữ liệu `.vslm` vào 5 module tiền xử lý có sẵn. Phải viết đường xử lý mới nhận `[1, 60, 75, 4]` theo interface §2.1. Các module cũ chỉ dùng để tham khảo công thức, không tái sử dụng trực tiếp được.
 
 ---
 
@@ -184,17 +218,19 @@ Phiếu đồng ý · khai metadata nhân khẩu · kiểm tra ánh sáng/khoả
 
 ### Acceptance Criteria — P1-1
 
-- [~] `AC-5` `npm install && npm run dev` chạy được, mở trình duyệt thấy webcam. — `npm install` ✅, `npx tsc --noEmit` sạch ✅, `npm run build` ✅ (164 KB). **Phần webcam chưa test** (môi trường không có webcam)
-- [ ] `AC-6` Quay một clip 3 giây trên máy ~30fps cho `frame_count` trong khoảng 80–95. — **CẦN TEST BẰNG WEBCAM THẬT**
+- [x] `AC-5` `npm install && npm run dev` chạy được, mở trình duyệt thấy webcam. — `npm install` ✅, `npx tsc --noEmit` sạch ✅, `npm run build` ✅, dev server phục vụ module đúng ✅, **P1 đã mở bằng webcam thật** ✅
+- [x] `AC-6` Quay một clip 3 giây trên máy ~30fps cho `frame_count` trong khoảng 80–95. — **P1 xác nhận bằng webcam thật**
 - [x] `AC-7` File `.vslm` đọc được bằng `ai_pipeline/data/landmark_io.py`. — **đã kiểm chứng end-to-end** (xem `AC-1`)
 - [x] `AC-8` Mất tay → `mask = 0`, toạ độ tay `0.0`, không `NaN`. — **đã kiểm chứng** trên dữ liệu mô phỏng khung 10–14
-- [ ] `AC-9` Quay liên tiếp 3 clip không phải tải lại trang. — **CẦN TEST BẰNG WEBCAM THẬT**
+- [x] `AC-9` Quay liên tiếp 3 clip không phải tải lại trang. — **P1 xác nhận bằng webcam thật**
 
-### Ba việc phải làm với webcam thật trước khi cả nhóm quay
+### Kiểm tra `handedness` — ĐÃ XONG, rủi ro đóng lại
 
-1. `AC-6` — quay thử 1 clip, xác nhận `frame_count` rơi vào 80–95.
-2. `AC-9` — quay 3 clip liên tiếp không tải lại trang.
-3. **Kiểm tra nhãn `handedness`** — MediaPipe phân loại tay dựa trên giả định ảnh đã lật gương. Camera thật trả khung hình gốc, nên có khả năng giơ tay phải mà MediaPipe gắn nhãn `"Left"`. Không sai spec (spec định nghĩa tay trái/phải = đúng nhãn MediaPipe trả về), nhưng phải xác nhận **nhất quán** trước khi 5 người quay 720 clip — phát hiện sau khi quay xong là phải quay lại toàn bộ.
+Rủi ro đã nêu: MediaPipe phân loại tay dựa trên giả định ảnh đã lật gương, nhưng camera trả khung hình gốc — nên có khả năng giơ tay phải mà bị gắn nhãn `"Left"`. Nếu phát hiện sau khi 5 người quay xong 720 clip thì phải quay lại toàn bộ.
+
+**P1 đã kiểm tra bằng webcam thật: pose, tay trái và tay phải đều nhận diện đúng.**
+
+→ **Cổng `recorderLite` MỞ.** Cả nhóm quay được.
 
 ---
 
@@ -204,10 +240,16 @@ File `.onnx` với **trọng số ngẫu nhiên** nhưng **interface đúng §2.
 
 ### Acceptance Criteria — P1-2
 
-- [ ] `AC-10` File `.onnx` nhận đúng 3 input theo §2.1 và trả `logits [1, 51]`.
-- [ ] `AC-11` Nạp được bằng `onnxruntime` phía Python **và** bằng `onnxruntime-web` trong trình duyệt.
-- [ ] `AC-12` Metadata nhúng `label_hash` khớp với `shared/labels.json` (dùng `ai_pipeline/utils/label_hash.py`).
-- [ ] `AC-13` Có file `models/DUMMY.md` ghi rõ đây là model giả, không dùng để đánh giá.
+- [x] `AC-10` File `.onnx` nhận đúng 3 input theo §2.1 và trả `logits [1, 51]`. — **đã kiểm chứng** bằng `test_onnx_io_contract` (tên/dtype/shape kiểm qua cả `onnx.load` lẫn `onnxruntime.InferenceSession`)
+- [~] `AC-11` Nạp được bằng `onnxruntime` phía Python **và** bằng `onnxruntime-web` trong trình duyệt. — `onnxruntime` Python ✅ (parity `max|diff| = 3.9e-07` trên 5 mẫu). `onnxruntime-web` 1.27.0 **backend wasm** ✅ (parity `max|diff| = 9.5e-07` trên 4 mẫu) nhưng chạy **trên Node**, chưa mở trong trình duyệt thật — cùng runtime wasm, khác host. Chốt hẳn khi P2 nạp được trong Worker.
+- [x] `AC-12` Metadata nhúng `label_hash` khớp với `shared/labels.json` (dùng `ai_pipeline/utils/label_hash.py`). — **đã kiểm chứng**; đồng thời phát hiện và sửa lỗi hai công thức hash lệch nhau khiến `labelVerifier.ts` từ chối nạp model 100% (xem `models/DUMMY.md` §9)
+- [x] `AC-13` Có file `models/DUMMY.md` ghi rõ đây là model giả, không dùng để đánh giá.
+
+> **Lỗi đáng nhớ, phát hiện khi làm P1-2 — P1-9 phải tránh lặp lại:** ONNX không có op
+> `Atan2`, exporter phân rã nó thành phép chia `y/x`. Khung thiếu vai có vector vai
+> `(0,0)`: PyTorch định nghĩa `atan2(0,0) = 0` còn graph ONNX tính `0/0 = NaN`, NaN lan
+> ra toàn bộ `logits`. Chỉ lộ khi buffer chưa đầy 60 khung — tức đúng tình huống thật
+> của chế độ Dịch, và **không** lộ nếu chỉ test bằng dữ liệu đủ 60 khung hợp lệ.
 
 ---
 

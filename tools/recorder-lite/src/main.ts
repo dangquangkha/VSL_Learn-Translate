@@ -4,10 +4,19 @@
  * Xem specs/010-p1-foundation/spec.md muc 4 (R-01..R-10) va plan.md.
  */
 import "./style.css";
-import { CaptureLoop, startWebcam } from "./capture";
-import { assembleFrame, detectPresence } from "./frameAssembler";
+// Module dung chung @shared/landmarks co y KHONG import runtime tu
+// @mediapipe/tasks-vision (neu import thi `vite build` hong - xem comment dau
+// file shared/landmarks/mediapipe.ts). App nao dung thi app do import roi
+// truyen vao createLandmarkers().
+//
+// Dung named import roi tu gom thanh object, KHONG dung `import * as`:
+// namespace import keo ca module vao bundle (FaceLandmarker, ImageSegmenter...)
+// lam mat tree-shaking, do len ~11 KB.
+import { FilesetResolver, HandLandmarker, PoseLandmarker } from "@mediapipe/tasks-vision";
+import { CaptureLoop, startWebcam } from "@shared/landmarks";
+import { assembleFrame, detectPresence } from "@shared/landmarks";
 import { allLabels, defaultDemoLabels } from "./labels";
-import { createLandmarkers, type Landmarkers } from "./mediapipe";
+import { createLandmarkers, type Landmarkers } from "@shared/landmarks";
 import {
   incrementCount,
   loadCounts,
@@ -17,9 +26,9 @@ import {
   type SignCounts,
 } from "./session";
 import { computeSummary } from "./summary";
-import type { FrameSample, LabelEntry, RecordingSummary } from "./types";
+import { RECORDER_VERSION, type FrameSample, type LabelEntry, type RecordingSummary } from "./types";
 import { formatPercent, renderApp, renderCounters, renderSignOptions, type AppElements } from "./ui";
-import { buildVslmFile, downloadVslmFile } from "./vslmWriter";
+import { buildVslmFile, downloadVslmFile } from "@shared/landmarks";
 
 const RECORDING_DURATION_MS = 3000;
 const COUNTDOWN_STEPS = [3, 2, 1];
@@ -86,7 +95,10 @@ function main(): void {
     try {
       const [videoSize, loaded] = await Promise.all([
         startWebcam(el.video),
-        createLandmarkers((msg) => setStatus(el, msg, false)),
+        createLandmarkers(
+          { FilesetResolver, HandLandmarker, PoseLandmarker },
+          (msg) => setStatus(el, msg, false),
+        ),
       ]);
       state.videoWidth = videoSize.width;
       state.videoHeight = videoSize.height;
@@ -279,6 +291,7 @@ function handleKeep(el: AppElements, state: AppState): void {
     videoWidth: state.videoWidth,
     videoHeight: state.videoHeight,
     recordedAt: state.recordingStartIso,
+    recorderVersion: RECORDER_VERSION,
   });
 
   downloadVslmFile(file);
