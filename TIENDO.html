@@ -126,8 +126,8 @@
 <script>
 /* === BEGIN STATUS DATA ====================================================== */
 const STATUS = {
-  updated:   "2026-08-20 — P2-1..5 xong, cổng shell MỞ — P3, P4, P5 gỡ chặn FE",
-  updatedBy: "P2 (Khải)",
+  updated:   "2026-08-20 — P1 xong ① (P1-1..P1-4) + P2 xong FE shell → cả 4 cổng MỞ",
+  updatedBy: "P1 (Tài)",
 
   /* Mốc đồng bộ cả nhóm — sửa tay: "todo" | "done" */
   milestones: {
@@ -141,7 +141,7 @@ const STATUS = {
       { id:"P1-1",  ph:1, lb:"recorder-lite",                    status:"done", gate:"recorderLite" },
       { id:"P1-2",  ph:1, lb:"Export ONNX giả (đúng shape)",     status:"done", gate:"onnxDummy" },
       { id:"P1-3",  ph:1, lb:"Chốt định dạng file landmark",     status:"done" },
-      { id:"P1-4",  ph:1, lb:"Module useLandmarks",              status:"todo", gate:"useLandmarks" },
+      { id:"P1-4",  ph:1, lb:"Module useLandmarks",              status:"done", gate:"useLandmarks" },
       { id:"P1-5",  ph:2, lb:"Dataset builder",                  status:"todo", needs:["m1"] },
       { id:"P1-6",  ph:2, lb:"train.py + training loop",         status:"todo" },
       { id:"P1-7",  ph:3, lb:"Train lần 1 + đánh giá",           status:"todo", needs:["m1"] },
