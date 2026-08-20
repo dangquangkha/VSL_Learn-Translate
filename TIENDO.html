@@ -126,8 +126,8 @@
 <script>
 /* === BEGIN STATUS DATA ====================================================== */
 const STATUS = {
-  updated:   "2026-08-19 — P1-1 và P1-2 xong, cổng recorderLite + onnxDummy MỞ",
-  updatedBy: "P1 (Tài)",
+  updated:   "2026-08-20 — P2-1..5 xong, cổng shell MỞ — P3, P4, P5 gỡ chặn FE",
+  updatedBy: "P2 (Khải)",
 
   /* Mốc đồng bộ cả nhóm — sửa tay: "todo" | "done" */
   milestones: {
@@ -152,11 +152,11 @@ const STATUS = {
     ]},
 
     { id:"P2", name:"Khải", role:"Shell + chế độ Dịch", tasks:[
-      { id:"P2-1",  ph:1, lb:"FE shell (Vite+React+TS, router, API client, JWT)", status:"todo", gate:"shell" },
-      { id:"P2-2",  ph:2, lb:"Web Worker + nạp ONNX",            status:"todo", needs:["onnxDummy"] },
-      { id:"P2-3",  ph:2, lb:"Ring buffer 2s + sliding window",  status:"todo", needs:["useLandmarks"] },
-      { id:"P2-4",  ph:3, lb:"Decoder (0.7 / 3 cửa sổ / khoá 1s)", status:"todo" },
-      { id:"P2-5",  ph:3, lb:"UI chế độ Dịch",                   status:"todo" },
+      { id:"P2-1",  ph:1, lb:"FE shell (Vite+React+TS, router, API client, JWT)", status:"done", gate:"shell" },
+      { id:"P2-2",  ph:2, lb:"Web Worker + nạp ONNX",            status:"done", needs:["onnxDummy"] },
+      { id:"P2-3",  ph:2, lb:"Ring buffer 2s + sliding window",  status:"done", needs:["useLandmarks"] },
+      { id:"P2-4",  ph:3, lb:"Decoder (0.7 / 3 cửa sổ / khoá 1s)", status:"done" },
+      { id:"P2-5",  ph:3, lb:"UI chế độ Dịch",                   status:"done" },
       { id:"P2-6",  ph:5, lb:"Thay model thật + đo độ trễ",      status:"todo", needs:["m3"] },
       { id:"P2-7",  ph:5, lb:"Service worker cache (offline)",   status:"todo" }
     ]},
