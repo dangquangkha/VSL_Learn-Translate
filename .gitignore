@@ -19,6 +19,14 @@ node_modules/
 .npm
 *.log
 
+# Java / Maven
+.m2/
+backend/target/
+target/
+.codex-target/
+*.class
+*.jar
+
 # Environments & Secrets
 .env
 .env.*

@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
@@ -14,23 +16,36 @@ import java.net.URI;
 @Configuration
 public class R2StorageConfig {
 
-    @Value("${r2.endpoint:https://account_id.r2.cloudflarestorage.com}")
+    @Value("${r2.endpoint}")
     private String r2Endpoint;
 
-    @Value("${r2.access-key:dummy_access_key}")
+    @Value("${r2.access-key}")
     private String r2AccessKey;
 
-    @Value("${r2.secret-key:dummy_secret_key}")
+    @Value("${r2.secret-key}")
     private String r2SecretKey;
+
+    @Bean
+    public S3Client s3Client() {
+        return S3Client.builder()
+                .endpointOverride(URI.create(r2Endpoint))
+                .region(Region.US_EAST_1)
+                .credentialsProvider(credentialsProvider())
+                .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
+                .build();
+    }
 
     @Bean
     public S3Presigner s3Presigner() {
         return S3Presigner.builder()
                 .endpointOverride(URI.create(r2Endpoint))
-                .region(Region.US_EAST_1) // Standard fallback for Cloudflare R2
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(r2AccessKey, r2SecretKey)
-                ))
+                .region(Region.US_EAST_1)
+                .credentialsProvider(credentialsProvider())
+                .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .build();
+    }
+
+    private StaticCredentialsProvider credentialsProvider() {
+        return StaticCredentialsProvider.create(AwsBasicCredentials.create(r2AccessKey, r2SecretKey));
     }
 }

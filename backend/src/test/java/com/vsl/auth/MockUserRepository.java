@@ -60,5 +60,5 @@ public class MockUserRepository implements UserRepository {
     @Override public <S extends User> org.springframework.data.domain.Page<S> findAll(org.springframework.data.domain.Example<S> example, org.springframework.data.domain.Pageable pageable) { return null; }
     @Override public <S extends User> long count(org.springframework.data.domain.Example<S> example) { return 0; }
     @Override public <S extends User> boolean exists(org.springframework.data.domain.Example<S> example) { return false; }
-    @Override public <S extends User, R> R findBy(org.springframework.data.domain.Example<S> example, java.util.function.Function<org.springframework.data.domain.FluentQuery.FetchableFluentQuery<S>, R> queryFunction) { return null; }
+    @Override public <S extends User, R> R findBy(org.springframework.data.domain.Example<S> example, java.util.function.Function<org.springframework.data.repository.query.FluentQuery.FetchableFluentQuery<S>, R> queryFunction) { return null; }
 }

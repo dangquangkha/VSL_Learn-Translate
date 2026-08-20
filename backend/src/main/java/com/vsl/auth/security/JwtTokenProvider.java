@@ -19,7 +19,7 @@ public class JwtTokenProvider {
     private final SecretKey key;
     private final long expirationMs = 86400000L; // 24 hours in ms
 
-    public JwtTokenProvider(@Value("${jwt.secret:vsl_learn_translate_super_secret_jwt_key_256bits_minimum_length!}") String jwtSecret) {
+    public JwtTokenProvider(@Value("${jwt.secret}") String jwtSecret) {
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
