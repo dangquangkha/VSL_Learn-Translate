@@ -36,7 +36,7 @@ export function decoderStep(
   now: number,
   lockedUntilRef: { value: number },
 ): { newState: DecoderState; emitted: string | null } {
-  let next = { ...state }
+  const next = { ...state }
   let emitted: string | null = null
 
   // Kiểm tra khóa hết chưa

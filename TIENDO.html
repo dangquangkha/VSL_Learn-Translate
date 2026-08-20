@@ -126,8 +126,8 @@
 <script>
 /* === BEGIN STATUS DATA ====================================================== */
 const STATUS = {
-  updated:   "2026-08-20 — P3-1, P5-1, P5-2 xong; BE collection + Maven clean verify 31/31 + PostgreSQL migration IT 1/1; cả 4 cổng ① đã MỞ",
-  updatedBy: "P3 (An) + P5 (Đức)",
+  updated:   "2026-08-20 — P5-3 xong; FE admin dashboard + stats chart + model registry upload/history/activate; frontend lint + build xanh",
+  updatedBy: "P5 (Đức)",
 
   /* Mốc đồng bộ cả nhóm — sửa tay: "todo" | "done" */
   milestones: {
@@ -182,9 +182,9 @@ const STATUS = {
     { id:"P5", name:"Đức", role:"Admin + registry/stats", tasks:[
       { id:"P5-1",  ph:1, lb:"BE modelregistry (/api/model/active)", status:"done" },
       { id:"P5-2",  ph:1, lb:"BE stats",                         status:"done" },
-      { id:"P5-3",  ph:2, lb:"FE admin dashboard",               status:"todo", needs:["shell"] },
-      { id:"P5-4",  ph:3, lb:"BE quality (worker hậu kiểm clip)", status:"todo" },
-      { id:"P5-5",  ph:3, lb:"FE quản lý phiên bản model",       status:"todo", needs:["shell"] },
+      { id:"P5-3",  ph:2, lb:"FE admin dashboard",               status:"done", needs:["shell"] },
+      { id:"P5-4",  ph:3, lb:"BE quality (worker hậu kiểm clip)", status:"doing" },
+      { id:"P5-5",  ph:3, lb:"FE hàng đợi duyệt clip",           status:"todo", needs:["shell"] },
       { id:"P5-6",  ph:4, lb:"FE trang minh bạch dataset",       status:"todo", needs:["shell"] }
     ]}
   ]

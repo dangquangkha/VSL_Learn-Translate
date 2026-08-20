@@ -71,8 +71,11 @@
 
 ## Giai đoạn ② — FE Admin Dashboard (`P5-3`, chờ FE Shell của P2)
 
-- [ ] **T-6.1**: FE Admin Dashboard — bảng thống kê, biểu đồ clips per class
-- [ ] **T-6.2**: FE Quản lý phiên bản model — upload, xem lịch sử, nút kích hoạt
+- [X] **T-6.1**: FE Admin Dashboard — bảng thống kê, biểu đồ clips per class
+- [X] **T-6.2**: FE Quản lý phiên bản model — upload, xem lịch sử, nút kích hoạt
+
+> Ghi chú triển khai: T-6.2 đã hoàn tất bằng panel registry dùng chung trong P5-3 và đồng thời
+> đáp ứng T-8.2. Phạm vi FE còn lại của P5-5 chỉ là review queue T-8.1.
 
 ---
 
@@ -93,7 +96,7 @@
 ### 8. FE Quality & Model Management (`P5-5`, chờ FE Shell)
 
 - [ ] **T-8.1**: FE hàng đợi duyệt clip — xem video, chấp nhận/loại, ghi lý do
-- [ ] **T-8.2**: FE quản lý phiên bản model — lịch sử, kích hoạt
+- [X] **T-8.2**: FE quản lý phiên bản model — lịch sử, kích hoạt (đã hoàn tất qua T-6.2/P5-3)
 
 ---
 

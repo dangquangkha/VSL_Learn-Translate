@@ -34,6 +34,7 @@ src/
 │   └── labels.ts              # ← AUTO-GENERATED, không sửa tay
 ├── services/
 │   ├── apiClient.ts           # Axios với JWT interceptor
+│   ├── adminService.ts        # Admin stats + model registry API contracts
 │   ├── authService.ts         # Login / register / logout
 │   ├── decoder.ts             # Sequence decoder (pure functions)
 │   └── labelVerifier.ts       # Xác minh label hash (có sẵn từ trước)
@@ -51,6 +52,11 @@ src/
 │   │   ├── AppShell.tsx       # Navbar + main + footer
 │   │   ├── Navbar.tsx         # Top navigation
 │   │   └── ProtectedRoute.tsx # Auth guard
+│   ├── admin/
+│   │   ├── AdminIcon.tsx      # Vector icons for admin controls
+│   │   ├── AdminMetricCard.tsx
+│   │   ├── ClassDistributionChart.tsx
+│   │   └── ModelRegistryPanel.tsx
 │   └── ui/
 │       ├── Button.tsx         # Button component
 │       ├── Badge.tsx          # Status badges
@@ -62,7 +68,7 @@ src/
 │   ├── TranslatePage.tsx      # Chế độ Dịch (đầy đủ)
 │   ├── LearnPage.tsx          # STUB — P4 implement
 │   ├── RecorderPage.tsx       # STUB — P3 implement
-│   └── AdminPage.tsx          # STUB — P5 implement
+│   └── AdminPage.tsx          # Admin stats + model registry dashboard (P5-3)
 └── workers/
     └── vslWorker.ts           # Web Worker + ONNX inference
 ```
@@ -82,8 +88,8 @@ src/
 - Dùng `useVslWorker` + `useDecoder` cho phần chấm điểm
 
 ### P5 (Đức) — Admin
-- Thay nội dung `AdminPage.tsx` với dashboard
-- Dùng `apiClient` gọi `/api/modelregistry`, `/api/stats`, `/api/quality`
+- `AdminPage.tsx` đã có dashboard stats và model registry (P5-3)
+- Dùng `apiClient` gọi `/api/admin/stats` và `/api/admin/models` (quality/review API sẽ bổ sung ở P5-4)
 - Route `/admin` đã có guard: chỉ role ADMIN vào được
 
 ## Contract ONNX (để tích hợp với P1)
@@ -91,8 +97,8 @@ src/
 File model đặt tại: `public/models/vsl_model.onnx`
 
 ```
-Input:  "input"  → float32 [1, 32, 55, 3]
-Output: "output" → float32 [1, 51]
+Inputs:  landmarks [1, 60, 75, 4], mask [1, 60, 3], timestamps [1, 60]
+Output:  logits [1, 51]
 Metadata: label_hash = SHA256(codes từ shared/labels.json)
 ```
 
