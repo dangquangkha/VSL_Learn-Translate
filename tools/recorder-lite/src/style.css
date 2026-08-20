@@ -372,6 +372,15 @@ body {
   border-radius: 8px;
 }
 
+/* MediaRecorder ghi stream GOC (khong lat), trong khi khung webcam truc tiep
+   (#video) va khung xuong deu da lat guong. Khong lat o day thi doan xem lai
+   nguoc ben so voi luc quay, nguoi quay se tuong minh lam sai tay.
+   Khung xuong KHONG dat transform o CSS vi no tu lat trong code
+   (playSkeleton mirror=true) — dat them o day la lat hai lan. */
+.review-media .review-video {
+  transform: scaleX(-1);
+}
+
 .hint {
   color: #6e7681;
   font-size: 11px;
